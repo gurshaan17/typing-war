@@ -9,6 +9,7 @@ import {
   IconFlag3,
   IconPalette,
   IconRefresh,
+  IconSearch,
   IconSettings,
   IconSwords,
   IconX,
@@ -31,7 +32,7 @@ function createRaceId() {
 }
 
 export function LandingPage() {
-  const { theme, setTheme } = useSiteTheme();
+  const { theme, setTheme, previewTheme, clearPreviewTheme } = useSiteTheme();
   const [snippetIndex, setSnippetIndex] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [duration, setDuration] = useState<(typeof TEST_TIMES)[number]>(30);
@@ -42,10 +43,25 @@ export function LandingPage() {
   const [raceLink, setRaceLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [themeQuery, setThemeQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const snippet = TEST_SNIPPETS[snippetIndex];
   const elapsedSeconds = hasStarted ? Math.max(duration - secondsLeft, 1) : 1;
+  const filteredThemes = keyboardThemeNames.filter((themeName) => {
+    const currentTheme = siteThemes[themeName];
+    const query = themeQuery.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    return (
+      currentTheme.label.toLowerCase().includes(query) ||
+      currentTheme.description.toLowerCase().includes(query) ||
+      themeName.toLowerCase().includes(query)
+    );
+  });
 
   const metrics = useMemo(() => {
     const correctChars = typedText
@@ -95,6 +111,7 @@ export function LandingPage() {
 
   useEffect(() => {
     if (!isThemeModalOpen) {
+      clearPreviewTheme();
       return;
     }
 
@@ -105,8 +122,11 @@ export function LandingPage() {
     }
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isThemeModalOpen]);
+    return () => {
+      clearPreviewTheme();
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [clearPreviewTheme, isThemeModalOpen]);
 
   function resetTest(nextSnippetIndex = snippetIndex, nextDuration = duration) {
     setTypedText("");
@@ -225,7 +245,10 @@ export function LandingPage() {
 
             <button
               type="button"
-              onClick={() => setIsThemeModalOpen(true)}
+              onClick={() => {
+                setThemeQuery("");
+                setIsThemeModalOpen(true);
+              }}
               className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <IconPalette className="size-4" />
@@ -368,7 +391,10 @@ export function LandingPage() {
         <div className="pointer-events-none fixed bottom-6 right-6 z-20 flex justify-end">
           <button
             type="button"
-            onClick={() => setIsThemeModalOpen(true)}
+            onClick={() => {
+              setThemeQuery("");
+              setIsThemeModalOpen(true);
+            }}
             className="pointer-events-auto inline-flex min-h-12 items-center gap-3 rounded-full border border-border bg-[var(--site-panel-strong)] px-4 py-3 text-sm text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <IconPalette className="size-4 text-primary" />
@@ -378,78 +404,91 @@ export function LandingPage() {
       </div>
 
       {isThemeModalOpen ? (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-4xl rounded-[2rem] border border-border bg-[var(--site-panel-strong)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs tracking-[0.24em] text-primary uppercase">
-                  Theme selector
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-foreground">
-                  Choose a keyboard theme for the whole site.
-                </h2>
-              </div>
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-black/38 p-3 backdrop-blur-[3px] sm:items-center sm:p-6"
+          onClick={() => setIsThemeModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#f4f2ee] text-[#4e5358] shadow-[0_28px_90px_rgba(0,0,0,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 border-b border-black/6 px-5 py-4 sm:px-8 sm:py-5">
+              <IconSearch className="size-6 shrink-0 text-[#5c5e61]" />
+              <label htmlFor="theme-search" className="sr-only">
+                Search themes
+              </label>
+              <input
+                id="theme-search"
+                value={themeQuery}
+                onChange={(event) => setThemeQuery(event.target.value)}
+                placeholder="Theme..."
+                autoFocus
+            className="h-12 flex-1 bg-transparent text-2xl tracking-[-0.04em] text-[#4e5358] placeholder:text-[#6d7175] focus:outline-none"
+              />
               <button
                 type="button"
                 onClick={() => setIsThemeModalOpen(false)}
-                className="inline-flex size-11 items-center justify-center rounded-2xl border border-border text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex size-11 items-center justify-center rounded-2xl text-[#5c5e61] transition-colors hover:bg-black/5 hover:text-[#27292c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a4d50]/20"
               >
                 <IconX className="size-5" />
               </button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {keyboardThemeNames.map((themeName) => {
-                const currentTheme = siteThemes[themeName];
-                const isActive = themeName === theme;
+            <div className="max-h-[70vh] overflow-y-auto px-2 py-4 sm:px-3">
+              {filteredThemes.length === 0 ? (
+                <div className="px-5 py-8 font-mono text-lg text-[#6d7175]">
+                  No themes found.
+                </div>
+              ) : (
+                filteredThemes.map((themeName) => {
+                  const currentTheme = siteThemes[themeName];
+                  const isActive = themeName === theme;
 
-                return (
-                  <button
-                    key={themeName}
-                    type="button"
-                    onClick={() => {
-                      setTheme(themeName);
-                      setIsThemeModalOpen(false);
-                    }}
-                    className={cn(
-                      "rounded-3xl border p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      isActive
-                        ? "border-primary bg-primary/8 shadow-[0_12px_30px_var(--site-glow)]"
-                        : "border-border bg-[var(--site-panel-muted)] hover:border-primary/45",
-                    )}
-                  >
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {currentTheme.label}
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                          {currentTheme.description}
-                        </p>
-                      </div>
-                      {isActive ? (
-                        <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <IconCheck className="size-4" />
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex gap-2">
-                      <span
-                        className="h-11 flex-1 rounded-2xl border border-white/10"
-                        style={{ backgroundColor: currentTheme.keyboard.dark.bg }}
-                      />
-                      <span
-                        className="h-11 flex-1 rounded-2xl border border-white/10"
-                        style={{ backgroundColor: currentTheme.keyboard.light.bg }}
-                      />
-                      <span
-                        className="h-11 flex-1 rounded-2xl border border-white/10"
-                        style={{ backgroundColor: currentTheme.keyboard.accent.bg }}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={themeName}
+                      type="button"
+                      onClick={() => {
+                        setTheme(themeName);
+                        clearPreviewTheme();
+                        setIsThemeModalOpen(false);
+                      }}
+                      onMouseEnter={() => previewTheme(themeName)}
+                      onFocus={() => previewTheme(themeName)}
+                      onMouseLeave={clearPreviewTheme}
+                      className={cn(
+                        "flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a4d50]/20 sm:px-5",
+                        isActive
+                          ? "bg-[#1f1f1f] text-white"
+                          : "text-[#505357] hover:bg-black/4",
+                      )}
+                    >
+                      <span className="inline-flex w-8 shrink-0 items-center justify-center">
+                        {isActive ? (
+                          <IconCheck className="size-6" />
+                        ) : null}
+                      </span>
+                      <span className="min-w-0 flex-1 text-[1.05rem] sm:text-[1.15rem]">
+                        {currentTheme.label.toLowerCase()}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 rounded-full bg-white/90 px-2 py-1">
+                        <span
+                          className="size-6 rounded-full"
+                          style={{ backgroundColor: currentTheme.keyboard.accent.bg }}
+                        />
+                        <span
+                          className="size-6 rounded-full"
+                          style={{ backgroundColor: currentTheme.keyboard.dark.bg }}
+                        />
+                        <span
+                          className="size-6 rounded-full"
+                          style={{ backgroundColor: currentTheme.keyboard.light.bg }}
+                        />
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,12 @@ export const keyboardThemeNames = [
   "dolch",
   "sand",
   "scarlet",
+  "paper",
+  "camping",
+  "nord-light",
+  "solar-light",
+  "tangerine",
+  "rainbow-trail",
 ] as const;
 
 export type KeyboardThemeName = (typeof keyboardThemeNames)[number];
@@ -12,7 +18,7 @@ export type KeyboardThemeName = (typeof keyboardThemeNames)[number];
 export type SiteThemeDefinition = {
   label: string;
   description: string;
-  site: {
+ site: {
     background: string;
     foreground: string;
     panel: string;
@@ -41,8 +47,12 @@ export type SiteThemeDefinition = {
   };
 };
 
+function createTheme(definition: SiteThemeDefinition): SiteThemeDefinition {
+  return definition;
+}
+
 export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
-  classic: {
+  classic: createTheme({
     label: "Classic Ember",
     description: "Dark graphite with a hot orange race line.",
     site: {
@@ -72,8 +82,8 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#737373", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#F5F5F5", text: "rgba(0,0,0,0.7)" },
     },
-  },
-  mint: {
+  }),
+  mint: createTheme({
     label: "Mint Circuit",
     description: "Cool aqua surfaces with clean racing contrast.",
     site: {
@@ -103,8 +113,8 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#447B82", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#EEEEEE", text: "#447B82" },
     },
-  },
-  royal: {
+  }),
+  royal: createTheme({
     label: "Royal Sprint",
     description: "A deep blue arcade look with gold acceleration.",
     site: {
@@ -134,8 +144,8 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#3A3B35", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#324974", text: "rgba(255,255,255,0.7)" },
     },
-  },
-  dolch: {
+  }),
+  dolch: createTheme({
     label: "Dolch Drift",
     description: "Muted indigo tones with sharp red highlights.",
     site: {
@@ -165,8 +175,8 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#3E3B4C", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#4F5E78", text: "rgba(255,255,255,0.7)" },
     },
-  },
-  sand: {
+  }),
+  sand: createTheme({
     label: "Sandstorm",
     description: "Warm desert surfaces with crisp clay highlights.",
     site: {
@@ -196,8 +206,8 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#893D36", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#EFEFEF", text: "rgba(0,0,0,0.7)" },
     },
-  },
-  scarlet: {
+  }),
+  scarlet: createTheme({
     label: "Scarlet Pulse",
     description: "Soft rose neutrals tuned for a bright competitive feel.",
     site: {
@@ -227,7 +237,193 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
       dark: { bg: "#D5868A", text: "rgba(255,255,255,0.7)" },
       light: { bg: "#E4D7D7", text: "#8F4246" },
     },
-  },
+  }),
+  paper: createTheme({
+    label: "Paper",
+    description: "Bright editorial whites with graphite contrast.",
+    site: {
+      background: "#f4f2ee",
+      foreground: "#252525",
+      panel: "rgba(255, 255, 255, 0.82)",
+      panelStrong: "rgba(255, 255, 255, 0.94)",
+      panelMuted: "rgba(245, 242, 236, 0.88)",
+      border: "rgba(37, 37, 37, 0.1)",
+      primary: "#404040",
+      primaryForeground: "#faf7f1",
+      secondary: "#e8e3d7",
+      secondaryForeground: "#2c2b28",
+      accent: "#b1b1b1",
+      accentForeground: "#252525",
+      muted: "#ebe7df",
+      mutedForeground: "rgba(37, 37, 37, 0.62)",
+      ring: "rgba(64, 64, 64, 0.25)",
+      glow: "rgba(64, 64, 64, 0.1)",
+      heroFrom: "rgba(200, 194, 181, 0.25)",
+      heroVia: "rgba(255, 255, 255, 0.45)",
+      heroTo: "rgba(244, 242, 238, 0)",
+      grid: "rgba(37, 37, 37, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#4A4A4A", text: "rgba(255,255,255,0.8)" },
+      dark: { bg: "#B0B0B0", text: "rgba(0,0,0,0.68)" },
+      light: { bg: "#F8F6F0", text: "rgba(0,0,0,0.72)" },
+    },
+  }),
+  camping: createTheme({
+    label: "Camping",
+    description: "Forest green, canvas beige, and charcoal ink.",
+    site: {
+      background: "#f5f0e5",
+      foreground: "#2c332c",
+      panel: "rgba(255, 250, 242, 0.86)",
+      panelStrong: "rgba(255, 251, 245, 0.96)",
+      panelMuted: "rgba(242, 235, 221, 0.88)",
+      border: "rgba(61, 74, 57, 0.14)",
+      primary: "#6b8f5f",
+      primaryForeground: "#fbf8f1",
+      secondary: "#d4c8b6",
+      secondaryForeground: "#2f352e",
+      accent: "#40443d",
+      accentForeground: "#fbf8f1",
+      muted: "#ece2d2",
+      mutedForeground: "rgba(44, 51, 44, 0.64)",
+      ring: "rgba(107, 143, 95, 0.26)",
+      glow: "rgba(107, 143, 95, 0.12)",
+      heroFrom: "rgba(107, 143, 95, 0.14)",
+      heroVia: "rgba(212, 200, 182, 0.22)",
+      heroTo: "rgba(245, 240, 229, 0)",
+      grid: "rgba(44, 51, 44, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#6B8F5F", text: "rgba(255,255,255,0.82)" },
+      dark: { bg: "#C5BCA9", text: "rgba(0,0,0,0.68)" },
+      light: { bg: "#3F433E", text: "rgba(255,255,255,0.78)" },
+    },
+  }),
+  "nord-light": createTheme({
+    label: "Nord Light",
+    description: "Soft arctic paper tones with muted blue focus.",
+    site: {
+      background: "#eceff4",
+      foreground: "#2e3440",
+      panel: "rgba(250, 251, 253, 0.9)",
+      panelStrong: "rgba(255, 255, 255, 0.98)",
+      panelMuted: "rgba(232, 236, 243, 0.94)",
+      border: "rgba(46, 52, 64, 0.1)",
+      primary: "#5e81ac",
+      primaryForeground: "#f6f8fb",
+      secondary: "#d8dee9",
+      secondaryForeground: "#2e3440",
+      accent: "#81a1c1",
+      accentForeground: "#f6f8fb",
+      muted: "#e5e9f0",
+      mutedForeground: "rgba(46, 52, 64, 0.62)",
+      ring: "rgba(94, 129, 172, 0.25)",
+      glow: "rgba(94, 129, 172, 0.1)",
+      heroFrom: "rgba(129, 161, 193, 0.2)",
+      heroVia: "rgba(216, 222, 233, 0.3)",
+      heroTo: "rgba(236, 239, 244, 0)",
+      grid: "rgba(46, 52, 64, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#88C0D0", text: "rgba(34,40,49,0.78)" },
+      dark: { bg: "#6B7A99", text: "rgba(255,255,255,0.82)" },
+      light: { bg: "#E5E9F0", text: "#3B4252" },
+    },
+  }),
+  "solar-light": createTheme({
+    label: "Solarized Light",
+    description: "Warm parchment with teal and olive controls.",
+    site: {
+      background: "#fdf6e3",
+      foreground: "#586e75",
+      panel: "rgba(255, 250, 236, 0.9)",
+      panelStrong: "rgba(255, 252, 242, 0.98)",
+      panelMuted: "rgba(249, 241, 219, 0.92)",
+      border: "rgba(88, 110, 117, 0.12)",
+      primary: "#268bd2",
+      primaryForeground: "#fdf6e3",
+      secondary: "#eee8d5",
+      secondaryForeground: "#586e75",
+      accent: "#859900",
+      accentForeground: "#fdf6e3",
+      muted: "#f4edd8",
+      mutedForeground: "rgba(88, 110, 117, 0.68)",
+      ring: "rgba(38, 139, 210, 0.24)",
+      glow: "rgba(38, 139, 210, 0.08)",
+      heroFrom: "rgba(133, 153, 0, 0.12)",
+      heroVia: "rgba(238, 232, 213, 0.36)",
+      heroTo: "rgba(253, 246, 227, 0)",
+      grid: "rgba(88, 110, 117, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#859900", text: "rgba(255,255,255,0.84)" },
+      dark: { bg: "#2AA198", text: "rgba(255,255,255,0.82)" },
+      light: { bg: "#FDF6E3", text: "#586E75" },
+    },
+  }),
+  tangerine: createTheme({
+    label: "Tangerine",
+    description: "High-key citrus tones with a warm cream base.",
+    site: {
+      background: "#fff7ef",
+      foreground: "#3f2719",
+      panel: "rgba(255, 255, 255, 0.9)",
+      panelStrong: "rgba(255, 255, 255, 0.98)",
+      panelMuted: "rgba(255, 243, 228, 0.92)",
+      border: "rgba(63, 39, 25, 0.1)",
+      primary: "#ff6b1a",
+      primaryForeground: "#fff7ef",
+      secondary: "#ffc18a",
+      secondaryForeground: "#4e3020",
+      accent: "#5e2404",
+      accentForeground: "#fff7ef",
+      muted: "#ffe6cf",
+      mutedForeground: "rgba(63, 39, 25, 0.64)",
+      ring: "rgba(255, 107, 26, 0.24)",
+      glow: "rgba(255, 107, 26, 0.12)",
+      heroFrom: "rgba(255, 107, 26, 0.14)",
+      heroVia: "rgba(255, 193, 138, 0.26)",
+      heroTo: "rgba(255, 247, 239, 0)",
+      grid: "rgba(63, 39, 25, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#FF6010", text: "rgba(255,255,255,0.88)" },
+      dark: { bg: "#FF9461", text: "rgba(255,255,255,0.88)" },
+      light: { bg: "#5A2405", text: "rgba(255,255,255,0.84)" },
+    },
+  }),
+  "rainbow-trail": createTheme({
+    label: "Rainbow Trail",
+    description: "Playful neutrals with bold competitive pops.",
+    site: {
+      background: "#f5f4f7",
+      foreground: "#222227",
+      panel: "rgba(255, 255, 255, 0.9)",
+      panelStrong: "rgba(255, 255, 255, 0.98)",
+      panelMuted: "rgba(246, 245, 249, 0.94)",
+      border: "rgba(34, 34, 39, 0.1)",
+      primary: "#2d1f8f",
+      primaryForeground: "#ffffff",
+      secondary: "#d8d3ef",
+      secondaryForeground: "#222227",
+      accent: "#59b9e8",
+      accentForeground: "#102333",
+      muted: "#ece9f6",
+      mutedForeground: "rgba(34, 34, 39, 0.64)",
+      ring: "rgba(45, 31, 143, 0.24)",
+      glow: "rgba(89, 185, 232, 0.12)",
+      heroFrom: "rgba(89, 185, 232, 0.14)",
+      heroVia: "rgba(216, 211, 239, 0.26)",
+      heroTo: "rgba(245, 244, 247, 0)",
+      grid: "rgba(34, 34, 39, 0.05)",
+    },
+    keyboard: {
+      accent: { bg: "#59B9E8", text: "rgba(18,24,31,0.82)" },
+      dark: { bg: "#2D1F8F", text: "rgba(255,255,255,0.88)" },
+      light: { bg: "#1E1E1E", text: "rgba(255,255,255,0.86)" },
+    },
+  }),
 };
 
 export const defaultKeyboardTheme: KeyboardThemeName = "classic";

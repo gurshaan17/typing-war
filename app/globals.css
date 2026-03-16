@@ -72,8 +72,8 @@
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
-  --font-sans: "Trebuchet MS", "Segoe UI", "Helvetica Neue", sans-serif;
-  --font-mono: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  --font-sans: "Roboto Mono", "SFMono-Regular", "Menlo", "Consolas", monospace;
+  --font-mono: "Roboto Mono", "SFMono-Regular", "Menlo", "Consolas", monospace;
   --sidebar: rgba(21, 23, 28, 0.82);
   --sidebar-foreground: #f5f0e8;
   --sidebar-primary: #f57644;

@@ -21,6 +21,8 @@ const STORAGE_KEY = "typing-wars-theme";
 type ThemeContextValue = {
   theme: KeyboardThemeName;
   setTheme: (theme: KeyboardThemeName) => void;
+  previewTheme: (theme: KeyboardThemeName) => void;
+  clearPreviewTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -73,9 +75,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     return defaultKeyboardTheme;
   });
+  const [previewThemeState, setPreviewThemeState] = useState<KeyboardThemeName | null>(null);
 
   useEffect(() => {
-    applyTheme(theme);
+    applyTheme(previewThemeState ?? theme);
+  }, [previewThemeState, theme]);
+
+  useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
@@ -83,6 +89,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({
       theme,
       setTheme,
+      previewTheme: setPreviewThemeState,
+      clearPreviewTheme: () => setPreviewThemeState(null),
     }),
     [theme],
   );
