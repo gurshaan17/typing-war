@@ -1,7 +1,7 @@
-import Helper from "@/components/helper";
+import { LandingPage } from "@/components/landing-page";
 
 export default function Home() {
   return (
-    <Helper /> 
+    <LandingPage />
   );
 }

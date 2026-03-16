@@ -1,5 +1,6 @@
 'use client';
 
+import { siteThemes, type KeyboardThemeName } from "@/lib/site-theme";
 import { cn } from "@/lib/utils";
 import {
   IconArrowNarrowLeft,
@@ -42,7 +43,6 @@ import { useWebHaptics } from "web-haptics/react";
 
 export type KeyboardEventSource = "physical" | "pointer";
 export type KeyboardEventPhase = "down" | "up";
-export type KeyboardThemeName = "classic" | "mint" | "royal" | "dolch" | "sand" | "scarlet";
 
 export interface KeyboardInteractionEvent {
   code: string;
@@ -913,9 +913,9 @@ const MINT_DARK_KEYS: KEYCODE[] = [
 const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   classic: {
     variants: {
-      accent: { bg: "#F57644", text: "rgba(0,0,0,0.5)" },
-      dark: { bg: "#737373", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#F5F5F5", text: "rgba(0,0,0,0.7)" },
+      accent: siteThemes.classic.keyboard.accent,
+      dark: siteThemes.classic.keyboard.dark,
+      light: siteThemes.classic.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [KEYCODE.Escape],
@@ -924,9 +924,9 @@ const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   },
   mint: {
     variants: {
-      accent: { bg: "#86C8AC", text: "rgba(255,255,255,0.7)" },
-      dark: { bg: "#447B82", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#EEEEEE", text: "#447B82" },
+      accent: siteThemes.mint.keyboard.accent,
+      dark: siteThemes.mint.keyboard.dark,
+      light: siteThemes.mint.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [
@@ -942,9 +942,9 @@ const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   },
   royal: {
     variants: {
-      accent: { bg: "#E4D440", text: "rgba(0,0,0,0.7)" },
-      dark: { bg: "#3A3B35", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#324974", text: "rgba(255,255,255,0.7)" },
+      accent: siteThemes.royal.keyboard.accent,
+      dark: siteThemes.royal.keyboard.dark,
+      light: siteThemes.royal.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [
@@ -960,9 +960,9 @@ const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   },
   dolch: {
     variants: {
-      accent: { bg: "#D73E42", text: "rgba(0,0,0,0.7)" },
-      dark: { bg: "#3E3B4C", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#4F5E78", text: "rgba(255,255,255,0.7)" },
+      accent: siteThemes.dolch.keyboard.accent,
+      dark: siteThemes.dolch.keyboard.dark,
+      light: siteThemes.dolch.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.Space],
@@ -971,9 +971,9 @@ const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   },
   sand: {
     variants: {
-      accent: { bg: "#C94E41", text: "rgba(255,255,255,0.7)" },
-      dark: { bg: "#893D36", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#EFEFEF", text: "rgba(0,0,0,0.7)" },
+      accent: siteThemes.sand.keyboard.accent,
+      dark: siteThemes.sand.keyboard.dark,
+      light: siteThemes.sand.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [KEYCODE.Escape, KEYCODE.Enter],
@@ -982,9 +982,9 @@ const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
   },
   scarlet: {
     variants: {
-      accent: { bg: "#E1E1E1", text: "#8F4246" },
-      dark: { bg: "#D5868A", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#E4D7D7", text: "#8F4246" },
+      accent: siteThemes.scarlet.keyboard.accent,
+      dark: siteThemes.scarlet.keyboard.dark,
+      light: siteThemes.scarlet.keyboard.light,
     },
     keyVariantOverrides: buildKeyVariantOverrides({
       accent: [KEYCODE.Escape, KEYCODE.Enter],
