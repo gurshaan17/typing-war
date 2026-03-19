@@ -1,5 +1,6 @@
 'use client';
 
+import { siteThemes, type KeyboardThemeName } from "@/lib/site-theme";
 import { cn } from "@/lib/utils";
 import {
   IconArrowNarrowLeft,
@@ -42,7 +43,6 @@ import { useWebHaptics } from "web-haptics/react";
 
 export type KeyboardEventSource = "physical" | "pointer";
 export type KeyboardEventPhase = "down" | "up";
-export type KeyboardThemeName = "classic" | "mint" | "royal" | "dolch" | "sand" | "scarlet";
 
 export interface KeyboardInteractionEvent {
   code: string;
@@ -909,89 +909,95 @@ const MINT_DARK_KEYS: KEYCODE[] = [
   KEYCODE.ControlRight,
 ];
 
-// DEFINE YOUR CUSTOM THEMES HERE
-const KEYBOARD_THEMES: Record<KeyboardThemeName, KeyboardThemeDefinition> = {
+const KEYBOARD_THEME_OVERRIDES: Partial<
+  Record<
+    KeyboardThemeName,
+    {
+      accent?: KEYCODE[];
+      dark?: KEYCODE[];
+      light?: KEYCODE[];
+    }
+  >
+> = {
   classic: {
-    variants: {
-      accent: { bg: "#F57644", text: "rgba(0,0,0,0.5)" },
-      dark: { bg: "#737373", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#F5F5F5", text: "rgba(0,0,0,0.7)" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [KEYCODE.Escape],
-      dark: CLASSIC_DARK_KEYS,
-    }),
+    accent: [KEYCODE.Escape],
+    dark: CLASSIC_DARK_KEYS,
   },
   mint: {
-    variants: {
-      accent: { bg: "#86C8AC", text: "rgba(255,255,255,0.7)" },
-      dark: { bg: "#447B82", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#EEEEEE", text: "#447B82" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [
-        KEYCODE.Escape,
-        KEYCODE.Enter,
-        KEYCODE.ArrowLeft,
-        KEYCODE.ArrowRight,
-        KEYCODE.ArrowUp,
-        KEYCODE.ArrowDown
-      ],
-      dark: MINT_DARK_KEYS,
-    }),
+    accent: [
+      KEYCODE.Escape,
+      KEYCODE.Enter,
+      KEYCODE.ArrowLeft,
+      KEYCODE.ArrowRight,
+      KEYCODE.ArrowUp,
+      KEYCODE.ArrowDown,
+    ],
+    dark: MINT_DARK_KEYS,
   },
   royal: {
-    variants: {
-      accent: { bg: "#E4D440", text: "rgba(0,0,0,0.7)" },
-      dark: { bg: "#3A3B35", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#324974", text: "rgba(255,255,255,0.7)" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [
-        KEYCODE.Escape,
-        KEYCODE.Enter,
-        KEYCODE.ArrowLeft,
-        KEYCODE.ArrowRight,
-        KEYCODE.ArrowUp,
-        KEYCODE.ArrowDown
-      ],
-      dark: MINT_DARK_KEYS,
-    }),
+    accent: [
+      KEYCODE.Escape,
+      KEYCODE.Enter,
+      KEYCODE.ArrowLeft,
+      KEYCODE.ArrowRight,
+      KEYCODE.ArrowUp,
+      KEYCODE.ArrowDown,
+    ],
+    dark: MINT_DARK_KEYS,
   },
   dolch: {
-    variants: {
-      accent: { bg: "#D73E42", text: "rgba(0,0,0,0.7)" },
-      dark: { bg: "#3E3B4C", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#4F5E78", text: "rgba(255,255,255,0.7)" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.Space],
-      dark: [...MINT_DARK_KEYS, KEYCODE.Backquote, KEYCODE.Backslash],
-    }),
+    accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.Space],
+    dark: [...MINT_DARK_KEYS, KEYCODE.Backquote, KEYCODE.Backslash],
   },
   sand: {
-    variants: {
-      accent: { bg: "#C94E41", text: "rgba(255,255,255,0.7)" },
-      dark: { bg: "#893D36", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#EFEFEF", text: "rgba(0,0,0,0.7)" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [KEYCODE.Escape, KEYCODE.Enter],
-      dark: MINT_DARK_KEYS,
-    }),
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
   },
   scarlet: {
-    variants: {
-      accent: { bg: "#E1E1E1", text: "#8F4246" },
-      dark: { bg: "#D5868A", text: "rgba(255,255,255,0.7)" },
-      light: { bg: "#E4D7D7", text: "#8F4246" },
-    },
-    keyVariantOverrides: buildKeyVariantOverrides({
-      accent: [KEYCODE.Escape, KEYCODE.Enter],
-      dark: MINT_DARK_KEYS,
-    }),
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
+  },
+  paper: {
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
+  },
+  camping: {
+    accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.Space],
+    dark: MINT_DARK_KEYS,
+  },
+  "nord-light": {
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
+  },
+  "solar-light": {
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
+  },
+  tangerine: {
+    accent: [KEYCODE.Escape, KEYCODE.Enter],
+    dark: MINT_DARK_KEYS,
+  },
+  "rainbow-trail": {
+    accent: [KEYCODE.Escape, KEYCODE.Enter, KEYCODE.ArrowLeft, KEYCODE.ArrowRight],
+    dark: MINT_DARK_KEYS,
   },
 };
+
+const KEYBOARD_THEMES = Object.fromEntries(
+  Object.entries(siteThemes).map(([themeName, definition]) => [
+    themeName,
+    {
+      variants: {
+        accent: definition.keyboard.accent,
+        dark: definition.keyboard.dark,
+        light: definition.keyboard.light,
+      },
+      keyVariantOverrides: buildKeyVariantOverrides(
+        KEYBOARD_THEME_OVERRIDES[themeName as KeyboardThemeName] ?? {},
+      ),
+    } satisfies KeyboardThemeDefinition,
+  ]),
+) as Record<KeyboardThemeName, KeyboardThemeDefinition>;
 
 function buildKeyVariantOverrides({
   accent = [],
