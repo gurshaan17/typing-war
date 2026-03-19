@@ -10,8 +10,10 @@ import {
   CHART_WIDTH,
   clamp,
   createRaceId,
-  getRandomSnippetIndex,
-  TEST_TIMES,
+  getRandomSentence,
+  getRandomWordsSnippet,
+  TIME_MODE_PRESETS,
+  WORD_MODE_PRESETS,
 } from "@/components/landing-page/helpers";
 import { RaceLinkBanner } from "@/components/landing-page/race-link-banner";
 import { ResultsPanel } from "@/components/landing-page/results-panel";
@@ -27,11 +29,13 @@ import type {
   ErrorEvent,
   PerformancePoint,
   ResultMetrics,
+  TestMode,
   TestMetrics,
 } from "@/components/landing-page/types";
 import { useSiteTheme } from "@/components/theme-provider";
 import { siteThemes } from "@/lib/site-theme";
 import randomSentences from "@/random-sentences.json";
+import randomWords from "@/random-words.json";
 
 function useTestMetrics(
   typedText: string,
@@ -164,10 +168,12 @@ function useChartData(
 export function LandingPage() {
   const { theme, setTheme, previewTheme, clearPreviewTheme } = useSiteTheme();
 
-  const [snippetIndex, setSnippetIndex] = useState(0);
+  const [mode, setMode] = useState<TestMode>("time");
+  const [timeLimit, setTimeLimit] = useState<(typeof TIME_MODE_PRESETS)[number]>(30);
+  const [wordLimit, setWordLimit] = useState<(typeof WORD_MODE_PRESETS)[number]>(25);
+  const [snippet, setSnippet] = useState(() => getRandomSentence(randomSentences));
   const [typedText, setTypedText] = useState("");
-  const [duration, setDuration] = useState<(typeof TEST_TIMES)[number]>(30);
-  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -188,35 +194,38 @@ export function LandingPage() {
   const textSurfaceRef = useRef<HTMLDivElement>(null);
   const characterRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const typedTextRef = useRef(typedText);
-  const secondsLeftRef = useRef(secondsLeft);
-  const durationRef = useRef(duration);
+  const elapsedSecondsRef = useRef(elapsedSeconds);
   const snippetRef = useRef("");
   const errorEventsRef = useRef<ErrorEvent[]>([]);
+  const startTimeRef = useRef<number | null>(null);
 
-  const snippet = randomSentences[snippetIndex] ?? "";
-  const elapsedSeconds = hasStarted ? Math.max(duration - secondsLeft, 1) : 1;
-  const metrics = useTestMetrics(typedText, snippet, elapsedSeconds);
+  const elapsedForMetrics = hasStarted ? Math.max(elapsedSeconds, 1) : 1;
+  const activeChartDuration = Math.max(
+    mode === "time" ? timeLimit : elapsedSeconds,
+    performanceHistory.at(-1)?.second ?? 1,
+  );
+  const displayTimeValue =
+    mode === "time" ? Math.max(timeLimit - elapsedSeconds, 0) : Math.max(elapsedSeconds, 0);
+  const selectedPresetLabel =
+    mode === "time" ? `${timeLimit}s` : mode === "words" ? `${wordLimit}` : "free";
+  const metrics = useTestMetrics(typedText, snippet, elapsedForMetrics);
   const resultMetrics = useResultMetrics(
     typedText,
     snippet,
-    elapsedSeconds,
+    elapsedForMetrics,
     performanceHistory,
     metrics,
     errorEvents.length,
   );
-  const chartData = useChartData(duration, performanceHistory, errorEvents);
+  const chartData = useChartData(activeChartDuration, performanceHistory, errorEvents);
 
   useEffect(() => {
     typedTextRef.current = typedText;
   }, [typedText]);
 
   useEffect(() => {
-    secondsLeftRef.current = secondsLeft;
-  }, [secondsLeft]);
-
-  useEffect(() => {
-    durationRef.current = duration;
-  }, [duration]);
+    elapsedSecondsRef.current = elapsedSeconds;
+  }, [elapsedSeconds]);
 
   useEffect(() => {
     snippetRef.current = snippet;
@@ -285,7 +294,8 @@ export function LandingPage() {
   }, []);
 
   const recordPerformancePoint = useCallback((second: number) => {
-    const safeSecond = clamp(second, 1, durationRef.current);
+    const maxDuration = mode === "time" ? timeLimit : Math.max(second, 1);
+    const safeSecond = clamp(second, 1, maxDuration);
 
     setPerformanceHistory((currentHistory) => {
       const nextPoint = buildPerformancePoint(safeSecond);
@@ -299,7 +309,7 @@ export function LandingPage() {
       nextHistory[existingIndex] = nextPoint;
       return nextHistory;
     });
-  }, [buildPerformancePoint]);
+  }, [buildPerformancePoint, mode, timeLimit]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -307,45 +317,41 @@ export function LandingPage() {
     }
 
     const timer = window.setInterval(() => {
-      setSecondsLeft((current) => {
-        const nextSecond = clamp(duration - current + 1, 1, duration);
-        recordPerformancePoint(nextSecond);
+      const startedAt = startTimeRef.current;
+      if (!startedAt) {
+        return;
+      }
 
-        if (current <= 1) {
-          window.clearInterval(timer);
-          setIsRunning(false);
-          setIsFinished(true);
-          setIsTypingFocused(false);
-          return 0;
-        }
+      const nextElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      setElapsedSeconds(nextElapsed);
+      recordPerformancePoint(nextElapsed);
 
-        return current - 1;
-      });
+      if (mode === "time" && nextElapsed >= timeLimit) {
+        window.clearInterval(timer);
+        setElapsedSeconds(timeLimit);
+        setIsRunning(false);
+        setIsFinished(true);
+        setIsTypingFocused(false);
+      }
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [duration, isRunning, recordPerformancePoint]);
-
-  useEffect(() => {
-    if (!isFinished || !hasStarted) {
-      return;
-    }
-
-    recordPerformancePoint(Math.max(duration - secondsLeft, 1));
-  }, [duration, hasStarted, isFinished, recordPerformancePoint, secondsLeft]);
+  }, [isRunning, mode, recordPerformancePoint, timeLimit]);
 
   const resetTest = useCallback(
-    (nextSnippetIndex = snippetIndex, nextDuration = duration) => {
+    (nextSnippet = snippet) => {
       setTypedText("");
-      setSecondsLeft(nextDuration);
+      setElapsedSeconds(0);
       setIsRunning(false);
       setIsFinished(false);
       setHasStarted(false);
-      setSnippetIndex(nextSnippetIndex);
+      setSnippet(nextSnippet);
       setPerformanceHistory([]);
       setErrorEvents([]);
+      setIsTypingFocused(false);
+      startTimeRef.current = null;
     },
-    [duration, snippetIndex],
+    [snippet],
   );
 
   const focusTypingArea = useCallback(() => {
@@ -430,17 +436,18 @@ export function LandingPage() {
   }, [snippet, typedText]);
 
   const getCurrentSecond = useCallback(
-    () => clamp(durationRef.current - secondsLeftRef.current + 1, 1, durationRef.current),
+    () => Math.max(elapsedSecondsRef.current, 1),
     [],
   );
 
   const handleTypingChange = useCallback(
     (value: string) => {
-      if (isFinished || secondsLeft <= 0) {
+      if (isFinished) {
         return;
       }
 
       if (!hasStarted && value.length > 0) {
+        startTimeRef.current = Date.now();
         setHasStarted(true);
         setIsRunning(true);
         setIsFinished(false);
@@ -462,7 +469,12 @@ export function LandingPage() {
         }
       }
 
-      if (nextValue.length >= snippet.length) {
+      if (mode !== "time" && nextValue.length >= snippet.length) {
+        const finalElapsed = startTimeRef.current
+          ? Math.max(1, Math.ceil((Date.now() - startTimeRef.current) / 1000))
+          : 1;
+        setElapsedSeconds(finalElapsed);
+        recordPerformancePoint(finalElapsed);
         setIsRunning(false);
         setIsFinished(true);
         setIsTypingFocused(false);
@@ -470,22 +482,54 @@ export function LandingPage() {
 
       setTypedText(nextValue);
     },
-    [getCurrentSecond, hasStarted, isFinished, secondsLeft, snippet, typedText],
-  );
-
-  const handleDurationChange = useCallback(
-    (nextDuration: (typeof TEST_TIMES)[number]) => {
-      setDuration(nextDuration);
-      resetTest(snippetIndex, nextDuration);
-      focusTypingArea();
-    },
-    [focusTypingArea, resetTest, snippetIndex],
+    [getCurrentSecond, hasStarted, isFinished, mode, recordPerformancePoint, snippet, typedText],
   );
 
   const handleNextQuote = useCallback(() => {
-    resetTest(getRandomSnippetIndex(randomSentences, snippetIndex), duration);
+    const nextSnippet =
+      mode === "words"
+        ? getRandomWordsSnippet(randomWords, wordLimit)
+        : getRandomSentence(randomSentences, snippet);
+    resetTest(nextSnippet);
     focusTypingArea();
-  }, [duration, focusTypingArea, resetTest, snippetIndex]);
+  }, [focusTypingArea, mode, resetTest, snippet, wordLimit]);
+
+  const handleModeChange = useCallback(
+    (nextMode: TestMode) => {
+      setMode(nextMode);
+
+      const nextSnippet =
+        nextMode === "words"
+          ? getRandomWordsSnippet(randomWords, wordLimit)
+          : getRandomSentence(randomSentences, nextMode === "custom" ? undefined : snippet);
+
+      resetTest(nextSnippet);
+      focusTypingArea();
+    },
+    [focusTypingArea, resetTest, snippet, wordLimit],
+  );
+
+  const handleTimeLimitChange = useCallback(
+    (nextTimeLimit: (typeof TIME_MODE_PRESETS)[number]) => {
+      setTimeLimit(nextTimeLimit);
+      if (mode === "time") {
+        resetTest(getRandomSentence(randomSentences, snippet));
+        focusTypingArea();
+      }
+    },
+    [focusTypingArea, mode, resetTest, snippet],
+  );
+
+  const handleWordLimitChange = useCallback(
+    (nextWordLimit: (typeof WORD_MODE_PRESETS)[number]) => {
+      setWordLimit(nextWordLimit);
+      if (mode === "words") {
+        resetTest(getRandomWordsSnippet(randomWords, nextWordLimit));
+        focusTypingArea();
+      }
+    },
+    [focusTypingArea, mode, resetTest],
+  );
 
   const handleCreateRace = useCallback(async () => {
     const nextLink = `${window.location.origin}/race/${createRaceId()}`;
@@ -519,9 +563,6 @@ export function LandingPage() {
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-5 pb-24 pt-6 sm:px-8 lg:px-12">
         <LandingHeader
-          duration={duration}
-          testTimes={TEST_TIMES}
-          onDurationChange={handleDurationChange}
           onNextQuote={handleNextQuote}
           onCreateRace={handleCreateRace}
         />
@@ -535,14 +576,19 @@ export function LandingPage() {
         <section className="flex flex-1 items-center justify-center py-8 sm:py-10">
           <div className="w-full max-w-6xl">
             <TypingSurface
-              duration={duration}
-              secondsLeft={secondsLeft}
+              mode={mode}
+              timeLimit={timeLimit}
+              wordLimit={wordLimit}
+              elapsedSeconds={displayTimeValue}
+              selectedPresetLabel={selectedPresetLabel}
+              timePresets={TIME_MODE_PRESETS}
+              wordPresets={WORD_MODE_PRESETS}
               metrics={metrics}
               snippet={snippet}
               typedText={typedText}
               caretStyle={caretStyle}
               isTypingFocused={isTypingFocused}
-              isLocked={isFinished || secondsLeft <= 0}
+              isLocked={isFinished || (mode === "time" && displayTimeValue <= 0)}
               textareaRef={textareaRef}
               textSurfaceRef={textSurfaceRef}
               characterRefs={characterRefs}
@@ -551,14 +597,17 @@ export function LandingPage() {
               onFocusChange={setIsTypingFocused}
               onFocusTypingArea={focusTypingArea}
               onRestart={() => {
-                resetTest(snippetIndex, duration);
+                resetTest(snippet);
                 focusTypingArea();
               }}
+              onModeChange={handleModeChange}
+              onTimeLimitChange={handleTimeLimitChange}
+              onWordLimitChange={handleWordLimitChange}
             />
 
             <ResultsPanel
               isVisible={isFinished && performanceHistory.length > 0}
-              duration={duration}
+              duration={mode === "time" ? timeLimit : Math.max(elapsedSeconds, 1)}
               metrics={metrics}
               resultMetrics={resultMetrics}
               chartData={chartData}
