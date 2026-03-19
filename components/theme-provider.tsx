@@ -18,6 +18,7 @@ import {
 } from "@/lib/site-theme";
 
 const STORAGE_KEY = "typing-wars-theme";
+const THEME_CHANGE_EVENT = "typing-wars-theme-change";
 
 function readStoredTheme(): KeyboardThemeName {
   if (typeof window === "undefined") {
@@ -77,30 +78,48 @@ function applyTheme(theme: KeyboardThemeName) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const persistedTheme = useSyncExternalStore(
+  const [previewThemeState, setPreviewThemeState] = useState<KeyboardThemeName | null>(null);
+  const theme = useSyncExternalStore(
     (callback) => {
-      window.addEventListener("storage", callback);
-      return () => window.removeEventListener("storage", callback);
+      function handleStorage(event: StorageEvent) {
+        if (event.key && event.key !== STORAGE_KEY) {
+          return;
+        }
+
+        callback();
+      }
+
+      function handleThemeChange() {
+        callback();
+      }
+
+      window.addEventListener("storage", handleStorage);
+      window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+
+      return () => {
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+      };
     },
     readStoredTheme,
     () => defaultKeyboardTheme,
   );
-  const [manualTheme, setManualTheme] = useState<KeyboardThemeName | null>(null);
-  const [previewThemeState, setPreviewThemeState] = useState<KeyboardThemeName | null>(null);
-  const theme = manualTheme ?? persistedTheme;
 
   useEffect(() => {
     applyTheme(previewThemeState ?? theme);
   }, [previewThemeState, theme]);
 
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+  const setTheme = (nextTheme: KeyboardThemeName) => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, nextTheme);
+      window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+    }
+  };
 
   const value = useMemo(
     () => ({
       theme,
-      setTheme: (nextTheme: KeyboardThemeName) => setManualTheme(nextTheme),
+      setTheme,
       previewTheme: setPreviewThemeState,
       clearPreviewTheme: () => setPreviewThemeState(null),
     }),
