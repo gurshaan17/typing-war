@@ -171,7 +171,8 @@ export function LandingPage() {
   const [mode, setMode] = useState<TestMode>("time");
   const [timeLimit, setTimeLimit] = useState<(typeof TIME_MODE_PRESETS)[number]>(30);
   const [wordLimit, setWordLimit] = useState<(typeof WORD_MODE_PRESETS)[number]>(25);
-  const [snippet, setSnippet] = useState(() => getRandomSentence(randomSentences));
+  const [snippet, setSnippet] = useState(() => randomSentences[0] ?? "");
+  const [customTextDraft, setCustomTextDraft] = useState("");
   const [typedText, setTypedText] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -206,8 +207,7 @@ export function LandingPage() {
   );
   const displayTimeValue =
     mode === "time" ? Math.max(timeLimit - elapsedSeconds, 0) : Math.max(elapsedSeconds, 0);
-  const selectedPresetLabel =
-    mode === "time" ? `${timeLimit}s` : mode === "words" ? `${wordLimit}` : "free";
+  const customTextReady = snippet.trim().length > 0;
   const metrics = useTestMetrics(typedText, snippet, elapsedForMetrics);
   const resultMetrics = useResultMetrics(
     typedText,
@@ -489,10 +489,14 @@ export function LandingPage() {
     const nextSnippet =
       mode === "words"
         ? getRandomWordsSnippet(randomWords, wordLimit)
+        : mode === "custom"
+          ? customTextDraft.trim()
         : getRandomSentence(randomSentences, snippet);
     resetTest(nextSnippet);
-    focusTypingArea();
-  }, [focusTypingArea, mode, resetTest, snippet, wordLimit]);
+    if (nextSnippet.length > 0) {
+      focusTypingArea();
+    }
+  }, [customTextDraft, focusTypingArea, mode, resetTest, snippet, wordLimit]);
 
   const handleModeChange = useCallback(
     (nextMode: TestMode) => {
@@ -501,12 +505,16 @@ export function LandingPage() {
       const nextSnippet =
         nextMode === "words"
           ? getRandomWordsSnippet(randomWords, wordLimit)
-          : getRandomSentence(randomSentences, nextMode === "custom" ? undefined : snippet);
+          : nextMode === "custom"
+            ? customTextDraft.trim()
+            : getRandomSentence(randomSentences, snippet);
 
       resetTest(nextSnippet);
-      focusTypingArea();
+      if (nextSnippet.length > 0) {
+        focusTypingArea();
+      }
     },
-    [focusTypingArea, resetTest, snippet, wordLimit],
+    [customTextDraft, focusTypingArea, resetTest, snippet, wordLimit],
   );
 
   const handleTimeLimitChange = useCallback(
@@ -556,6 +564,14 @@ export function LandingPage() {
     }
   }, [raceLink]);
 
+  const handleApplyCustomText = useCallback(() => {
+    const nextSnippet = customTextDraft.trim();
+    resetTest(nextSnippet);
+    if (nextSnippet.length > 0) {
+      focusTypingArea();
+    }
+  }, [customTextDraft, focusTypingArea, resetTest]);
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,var(--site-hero-from),transparent_28%),linear-gradient(180deg,transparent,rgba(0,0,0,0.18))]" />
@@ -580,7 +596,6 @@ export function LandingPage() {
               timeLimit={timeLimit}
               wordLimit={wordLimit}
               elapsedSeconds={displayTimeValue}
-              selectedPresetLabel={selectedPresetLabel}
               timePresets={TIME_MODE_PRESETS}
               wordPresets={WORD_MODE_PRESETS}
               metrics={metrics}
@@ -588,7 +603,11 @@ export function LandingPage() {
               typedText={typedText}
               caretStyle={caretStyle}
               isTypingFocused={isTypingFocused}
-              isLocked={isFinished || (mode === "time" && displayTimeValue <= 0)}
+              isLocked={
+                isFinished ||
+                (mode === "time" && displayTimeValue <= 0) ||
+                (mode === "custom" && snippet.trim().length === 0)
+              }
               textareaRef={textareaRef}
               textSurfaceRef={textSurfaceRef}
               characterRefs={characterRefs}
@@ -603,6 +622,10 @@ export function LandingPage() {
               onModeChange={handleModeChange}
               onTimeLimitChange={handleTimeLimitChange}
               onWordLimitChange={handleWordLimitChange}
+              customTextDraft={customTextDraft}
+              customTextReady={customTextReady}
+              onCustomTextDraftChange={setCustomTextDraft}
+              onApplyCustomText={handleApplyCustomText}
             />
 
             <ResultsPanel
@@ -614,6 +637,21 @@ export function LandingPage() {
             />
           </div>
         </section>
+
+        <footer className="pb-4 text-center text-sm text-muted-foreground">
+          <p>
+            © 2026 All rights reserved. | Made with {"\u{1F90D}"} by{" "}
+            <a
+              href="https://github.com/gurshaan17"
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground transition-colors hover:text-primary"
+            >
+              gurshaan
+            </a>
+            !
+          </p>
+        </footer>
       </div>
 
       <ThemePickerFab

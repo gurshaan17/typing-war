@@ -16,7 +16,6 @@ type TypingSurfaceProps = {
   timeLimit: number;
   wordLimit: number;
   elapsedSeconds: number;
-  selectedPresetLabel: string;
   timePresets: readonly (15 | 30 | 45 | 60)[];
   wordPresets: readonly (10 | 25 | 50 | 100)[];
   metrics: TestMetrics;
@@ -36,6 +35,10 @@ type TypingSurfaceProps = {
   onModeChange: (mode: TestMode) => void;
   onTimeLimitChange: (value: 15 | 30 | 45 | 60) => void;
   onWordLimitChange: (value: 10 | 25 | 50 | 100) => void;
+  customTextDraft: string;
+  customTextReady: boolean;
+  onCustomTextDraftChange: (value: string) => void;
+  onApplyCustomText: () => void;
 };
 
 export function TypingSurface({
@@ -43,7 +46,6 @@ export function TypingSurface({
   timeLimit,
   wordLimit,
   elapsedSeconds,
-  selectedPresetLabel,
   timePresets,
   wordPresets,
   metrics,
@@ -63,6 +65,10 @@ export function TypingSurface({
   onModeChange,
   onTimeLimitChange,
   onWordLimitChange,
+  customTextDraft,
+  customTextReady,
+  onCustomTextDraftChange,
+  onApplyCustomText,
 }: TypingSurfaceProps) {
   return (
     <>
@@ -119,10 +125,6 @@ export function TypingSurface({
           mode <span className="ml-2 text-foreground">{mode}</span>
         </div>
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
-          {mode === "time" ? "time" : mode === "words" ? "words" : "type"}
-          <span className="ml-2 text-foreground">{selectedPresetLabel}</span>
-        </div>
-        <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
           wpm <span className="ml-2 text-foreground">{metrics.wpm}</span>
         </div>
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
@@ -131,6 +133,53 @@ export function TypingSurface({
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
           {mode === "time" ? "left" : "elapsed"}
           <span className="ml-2 text-foreground">{elapsedSeconds}s</span>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-out",
+          mode === "custom"
+            ? "mb-6 max-h-[20rem] translate-y-0 opacity-100 sm:mb-8"
+            : "mb-0 max-h-0 -translate-y-2 opacity-0",
+        )}
+        aria-hidden={mode !== "custom"}
+      >
+        <div className="rounded-[2rem] border border-border/70 bg-[var(--site-panel-muted)] p-4 backdrop-blur-xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm tracking-[0.16em] text-muted-foreground uppercase">
+                custom text
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Paste or write the text you want to practice.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onApplyCustomText}
+              className="inline-flex min-h-10 items-center rounded-2xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              apply text
+            </button>
+          </div>
+
+          <textarea
+            value={customTextDraft}
+            onChange={(event) => onCustomTextDraftChange(event.target.value)}
+            placeholder="Type or paste your custom text here..."
+            className="min-h-32 w-full resize-y rounded-[1.5rem] border border-border/70 bg-black/10 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            spellCheck={false}
+          />
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs tracking-[0.14em] text-muted-foreground uppercase">
+            <span className="rounded-full border border-border/60 px-3 py-1.5">
+              {customTextDraft.trim().length} chars
+            </span>
+            <span className="rounded-full border border-border/60 px-3 py-1.5">
+              {customTextReady ? "ready to type" : "apply text to start"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -178,7 +227,13 @@ export function TypingSurface({
                 transform: `translate3d(${caretStyle.left}px, ${caretStyle.top}px, 0)`,
               }}
             />
-            {snippet.split("").map((char, index) => {
+            {snippet.length === 0 ? (
+              <div className="flex min-h-[12rem] items-center justify-center text-center text-lg text-muted-foreground">
+                {mode === "custom"
+                  ? "Add your custom text above, then press apply text to begin."
+                  : "No text loaded."}
+              </div>
+            ) : snippet.split("").map((char, index) => {
               const characterState = getCharacterState(index);
               const isActive = index === typedText.length;
 
