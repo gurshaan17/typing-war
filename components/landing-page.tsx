@@ -1,22 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   IconBolt,
-  IconCheck,
   IconClockHour4,
   IconCopy,
   IconFlag3,
-  IconPalette,
   IconRefresh,
-  IconSearch,
-  IconSettings,
   IconSwords,
-  IconX,
 } from "@tabler/icons-react";
 
-import { useSiteTheme } from "@/components/theme-provider";
-import { keyboardThemeNames, siteThemes } from "@/lib/site-theme";
 import { cn } from "@/lib/utils";
 
 const TEST_SNIPPETS = [
@@ -27,12 +20,17 @@ const TEST_SNIPPETS = [
 
 const TEST_TIMES = [15, 30, 60, 120] as const;
 
+type CaretStyle = {
+  left: number;
+  top: number;
+  height: number;
+};
+
 function createRaceId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
 export function LandingPage() {
-  const { theme, setTheme, previewTheme, clearPreviewTheme } = useSiteTheme();
   const [snippetIndex, setSnippetIndex] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [duration, setDuration] = useState<(typeof TEST_TIMES)[number]>(30);
@@ -42,26 +40,19 @@ export function LandingPage() {
   const [hasStarted, setHasStarted] = useState(false);
   const [raceLink, setRaceLink] = useState("");
   const [copied, setCopied] = useState(false);
-  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [themeQuery, setThemeQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textViewportRef = useRef<HTMLDivElement>(null);
+  const textSurfaceRef = useRef<HTMLDivElement>(null);
+  const characterRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const [caretStyle, setCaretStyle] = useState<CaretStyle>({
+    left: 0,
+    top: 0,
+    height: 0,
+  });
+  const [isTypingFocused, setIsTypingFocused] = useState(false);
 
   const snippet = TEST_SNIPPETS[snippetIndex];
   const elapsedSeconds = hasStarted ? Math.max(duration - secondsLeft, 1) : 1;
-  const filteredThemes = keyboardThemeNames.filter((themeName) => {
-    const currentTheme = siteThemes[themeName];
-    const query = themeQuery.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
-    return (
-      currentTheme.label.toLowerCase().includes(query) ||
-      currentTheme.description.toLowerCase().includes(query) ||
-      themeName.toLowerCase().includes(query)
-    );
-  });
 
   const metrics = useMemo(() => {
     const correctChars = typedText
@@ -78,6 +69,20 @@ export function LandingPage() {
       wpm: Number.isFinite(wpm) ? wpm : 0,
     };
   }, [elapsedSeconds, snippet, typedText]);
+
+  const wordRanges = useMemo(() => {
+    const ranges: Array<{ start: number; end: number }> = [];
+    let wordStart = 0;
+
+    for (let index = 0; index <= snippet.length; index += 1) {
+      if (index === snippet.length || snippet[index] === " ") {
+        ranges.push({ start: wordStart, end: index });
+        wordStart = index + 1;
+      }
+    }
+
+    return ranges;
+  }, [snippet]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -109,25 +114,6 @@ export function LandingPage() {
     return () => window.clearTimeout(timeout);
   }, [copied]);
 
-  useEffect(() => {
-    if (!isThemeModalOpen) {
-      clearPreviewTheme();
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsThemeModalOpen(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      clearPreviewTheme();
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [clearPreviewTheme, isThemeModalOpen]);
-
   function resetTest(nextSnippetIndex = snippetIndex, nextDuration = duration) {
     setTypedText("");
     setSecondsLeft(nextDuration);
@@ -140,6 +126,122 @@ export function LandingPage() {
   function focusTypingArea() {
     window.requestAnimationFrame(() => textareaRef.current?.focus());
   }
+
+  function getWordRange(index: number) {
+    return wordRanges.find((range) => index >= range.start && index < range.end) ?? null;
+  }
+
+  function getCharacterState(index: number) {
+    const typedChar = typedText[index];
+    if (typedChar === undefined) {
+      return "pending" as const;
+    }
+
+    const range = getWordRange(index);
+    if (!range) {
+      return typedChar === snippet[index] ? ("correct" as const) : ("incorrect" as const);
+    }
+
+    const typedWord = typedText.slice(range.start, Math.min(typedText.length, range.end));
+    const targetWord = snippet.slice(range.start, range.end);
+    const wordHasMistake = typedWord
+      .split("")
+      .some((char, offset) => char !== targetWord[offset]);
+    const wordIsComplete =
+      typedText.length > range.end ||
+      (typedText.length === range.end && (typedText[index] !== undefined || isFinished));
+
+    if (wordHasMistake && wordIsComplete) {
+      return "wrong-word" as const;
+    }
+
+    return typedChar === snippet[index] ? ("correct" as const) : ("incorrect" as const);
+  }
+
+  useLayoutEffect(() => {
+    const viewport = textViewportRef.current;
+    const container = textSurfaceRef.current;
+    if (!container || !viewport) {
+      return;
+    }
+
+    const currentIndex = Math.min(typedText.length, snippet.length - 1);
+    const currentCharacter = characterRefs.current[currentIndex];
+    const previousCharacter =
+      typedText.length > 0 ? characterRefs.current[typedText.length - 1] : null;
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = (typedText.length >= snippet.length ? previousCharacter : currentCharacter)
+      ?.getBoundingClientRect();
+
+    if (!targetRect) {
+      return;
+    }
+
+    const nextLeft =
+      typedText.length >= snippet.length
+        ? targetRect.right - containerRect.left
+        : targetRect.left - containerRect.left;
+
+    setCaretStyle({
+      left: nextLeft,
+      top: targetRect.top - containerRect.top,
+      height: targetRect.height,
+    });
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const lineTop = targetRect.top - viewportRect.top + viewport.scrollTop;
+    const lineBottom = targetRect.bottom - viewportRect.top + viewport.scrollTop;
+    const scrollPadding = Math.max(targetRect.height * 1.35, 32);
+    const currentScrollTop = viewport.scrollTop;
+    const currentScrollBottom = currentScrollTop + viewport.clientHeight;
+
+    if (lineTop - scrollPadding < currentScrollTop) {
+      viewport.scrollTo({
+        top: Math.max(lineTop - scrollPadding, 0),
+        behavior: "smooth",
+      });
+    } else if (lineBottom + scrollPadding > currentScrollBottom) {
+      viewport.scrollTo({
+        top: lineBottom + scrollPadding - viewport.clientHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [snippet, typedText, isFinished]);
+
+  useEffect(() => {
+    function updateCaretOnResize() {
+      const container = textSurfaceRef.current;
+      if (!container) {
+        return;
+      }
+
+      const currentIndex = Math.min(typedText.length, snippet.length - 1);
+      const currentCharacter = characterRefs.current[currentIndex];
+      const previousCharacter =
+        typedText.length > 0 ? characterRefs.current[typedText.length - 1] : null;
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = (typedText.length >= snippet.length ? previousCharacter : currentCharacter)
+        ?.getBoundingClientRect();
+
+      if (!targetRect) {
+        return;
+      }
+
+      setCaretStyle({
+        left:
+          typedText.length >= snippet.length
+            ? targetRect.right - containerRect.left
+            : targetRect.left - containerRect.left,
+        top: targetRect.top - containerRect.top,
+        height: targetRect.height,
+      });
+    }
+
+    window.addEventListener("resize", updateCaretOnResize);
+    return () => window.removeEventListener("resize", updateCaretOnResize);
+  }, [snippet, typedText]);
 
   function handleTypingChange(value: string) {
     if (!hasStarted && value.length > 0) {
@@ -195,17 +297,25 @@ export function LandingPage() {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,var(--site-hero-from),transparent_28%),linear-gradient(180deg,transparent,rgba(0,0,0,0.18))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent)]" />
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-5 pb-24 pt-6 sm:px-8 lg:px-12">
-        <header className="flex items-start justify-between gap-6">
-          <div className="flex max-w-4xl flex-1 flex-wrap items-center gap-2 rounded-3xl border border-border bg-[var(--site-panel-muted)] px-3 py-3 backdrop-blur-xl">
-            <div className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm text-muted-foreground">
-              <IconSettings className="size-4 text-primary" />
-              settings
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex shrink-0 items-center gap-3 rounded-3xl px-1 py-1">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_0_24px_var(--site-glow)]">
+              <IconSwords className="size-5" />
             </div>
+            <div>
+              <p className="text-xs tracking-[0.26em] text-muted-foreground uppercase">
+                typing wars
+              </p>
+              <p className="text-xl font-semibold tracking-[-0.04em] text-foreground">
+                Typing Wars
+              </p>
+            </div>
+          </div>
 
-            <div className="h-7 w-px bg-border/80" />
-
+          <div className="flex max-w-4xl flex-1 flex-wrap items-center gap-2 rounded-3xl border border-border bg-[var(--site-panel-muted)] px-3 py-3 backdrop-blur-xl">
             <div className="inline-flex items-center gap-1 rounded-2xl bg-black/10 p-1">
               {TEST_TIMES.map((value) => (
                 <button
@@ -242,32 +352,6 @@ export function LandingPage() {
               <IconFlag3 className="size-4" />
               create racetrack
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setThemeQuery("");
-                setIsThemeModalOpen(true);
-              }}
-              className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <IconPalette className="size-4" />
-              themes
-            </button>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-3 rounded-3xl px-2 py-2">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_0_24px_var(--site-glow)]">
-              <IconSwords className="size-5" />
-            </div>
-            <div className="text-right">
-              <p className="text-xs tracking-[0.26em] text-muted-foreground uppercase">
-                typing wars
-              </p>
-              <p className="text-xl font-semibold tracking-[-0.04em] text-foreground">
-                Typing Wars
-              </p>
-            </div>
           </div>
         </header>
 
@@ -294,22 +378,22 @@ export function LandingPage() {
           </div>
         ) : null}
 
-        <section className="flex flex-1 items-center justify-center py-10">
+        <section className="flex flex-1 items-center justify-center py-8 sm:py-10">
           <div className="w-full max-w-6xl">
-            <div className="mb-8 flex flex-wrap items-center justify-center gap-5 text-sm text-muted-foreground">
-              <div className="rounded-full px-3 py-1.5">
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground sm:mb-8">
+              <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
                 mode <span className="ml-2 text-foreground">time</span>
               </div>
-              <div className="rounded-full px-3 py-1.5">
+              <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
                 time <span className="ml-2 text-foreground">{duration}s</span>
               </div>
-              <div className="rounded-full px-3 py-1.5">
+              <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
                 wpm <span className="ml-2 text-foreground">{metrics.wpm}</span>
               </div>
-              <div className="rounded-full px-3 py-1.5">
+              <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
                 acc <span className="ml-2 text-foreground">{metrics.accuracy}%</span>
               </div>
-              <div className="rounded-full px-3 py-1.5">
+              <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
                 left <span className="ml-2 text-foreground">{secondsLeft}s</span>
               </div>
             </div>
@@ -324,7 +408,7 @@ export function LandingPage() {
                   focusTypingArea();
                 }
               }}
-              className="relative cursor-text rounded-[2.5rem] border border-transparent px-2 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative cursor-text rounded-[2.75rem] border border-border/70 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--site-panel)_78%,transparent),color-mix(in_srgb,var(--site-panel-muted)_92%,transparent))] px-3 py-5 shadow-[0_24px_80px_rgba(0,0,0,0.2)] backdrop-blur-2xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-5 sm:py-6"
             >
               <label htmlFor="typing-input" className="sr-only">
                 Type the text shown in the practice area
@@ -334,37 +418,71 @@ export function LandingPage() {
                 ref={textareaRef}
                 value={typedText}
                 onChange={(event) => handleTypingChange(event.target.value)}
+                onFocus={() => setIsTypingFocused(true)}
+                onBlur={() => setIsTypingFocused(false)}
                 className="absolute inset-0 h-full w-full resize-none opacity-0"
                 spellCheck={false}
                 autoCapitalize="off"
                 autoCorrect="off"
               />
 
-              <div className="mx-auto max-w-6xl text-center font-mono text-[clamp(2rem,4vw,5.15rem)] leading-[1.34] tracking-[-0.06em]">
-                {snippet.split("").map((char, index) => {
-                  const typedChar = typedText[index];
-                  const isCurrent = index === typedText.length;
+              <div
+                ref={textViewportRef}
+                className="typing-scrollbar relative mx-auto max-h-[min(48vh,24rem)] overflow-y-auto px-1 sm:max-h-[min(52vh,30rem)]"
+              >
+                <div
+                  ref={textSurfaceRef}
+                  className="relative mx-auto max-w-[26ch] pr-3 text-left font-mono text-[clamp(1.85rem,4vw,5rem)] leading-[1.42] tracking-[-0.055em] [font-variant-numeric:tabular-nums] sm:max-w-[28ch]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "pointer-events-none absolute z-10 w-[3px] rounded-full bg-primary shadow-[0_0_16px_var(--site-glow)] will-change-transform transition-[transform,height,opacity] duration-110 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                      isTypingFocused ? "animate-[caret-pulse_1.1s_ease-in-out_infinite] opacity-100" : "opacity-0",
+                    )}
+                    style={{
+                      height: `${caretStyle.height || 56}px`,
+                      transform: `translate3d(${caretStyle.left}px, ${caretStyle.top}px, 0)`,
+                    }}
+                  />
+                  {snippet.split("").map((char, index) => {
+                    const characterState = getCharacterState(index);
+                    const isActive = index === typedText.length;
 
-                  return (
-                    <span
-                      key={`${char}-${index}`}
-                      className={cn(
-                        "transition-colors duration-150",
-                        typedChar === undefined && "text-foreground/26",
-                        typedChar !== undefined &&
-                          typedChar === char &&
-                          "text-foreground/92",
-                        typedChar !== undefined &&
-                          typedChar !== char &&
-                          "text-red-300/70",
-                        isCurrent &&
-                          "border-l-4 border-primary bg-primary/5 text-foreground/92",
-                      )}
-                    >
-                      {char}
-                    </span>
-                  );
-                })}
+                    return (
+                      <span
+                        key={`${char}-${index}`}
+                        ref={(node) => {
+                          characterRefs.current[index] = node;
+                        }}
+                        className={cn(
+                          "relative whitespace-pre rounded-[0.18em] transition-[color,background-color,box-shadow,opacity] duration-100 ease-out",
+                          characterState === "pending" && "text-foreground/22",
+                          characterState === "correct" && "text-foreground/94",
+                          characterState === "incorrect" &&
+                            "bg-red-500/12 text-red-200 underline decoration-red-300/85 decoration-[0.08em] underline-offset-[0.18em]",
+                          characterState === "wrong-word" &&
+                            "bg-red-500/18 text-red-100 underline decoration-red-300/95 decoration-[0.08em] underline-offset-[0.18em]",
+                          isActive && "bg-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]",
+                        )}
+                      >
+                        {char}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs tracking-[0.16em] text-muted-foreground uppercase">
+                <span className="rounded-full border border-border/70 px-3 py-1.5">
+                  smooth caret
+                </span>
+                <span className="rounded-full border border-border/70 px-3 py-1.5">
+                  red underline = typo
+                </span>
+                <span className="rounded-full border border-border/70 px-3 py-1.5">
+                  wraps automatically
+                </span>
               </div>
             </div>
 
@@ -388,111 +506,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <div className="pointer-events-none fixed bottom-6 right-6 z-20 flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setThemeQuery("");
-              setIsThemeModalOpen(true);
-            }}
-            className="pointer-events-auto inline-flex min-h-12 items-center gap-3 rounded-full border border-border bg-[var(--site-panel-strong)] px-4 py-3 text-sm text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <IconPalette className="size-4 text-primary" />
-            <span>{siteThemes[theme].label}</span>
-          </button>
-        </div>
       </div>
-
-      {isThemeModalOpen ? (
-        <div
-          className="fixed inset-0 z-30 flex items-end justify-center bg-black/38 p-3 backdrop-blur-[3px] sm:items-center sm:p-6"
-          onClick={() => setIsThemeModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#f4f2ee] text-[#4e5358] shadow-[0_28px_90px_rgba(0,0,0,0.28)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 border-b border-black/6 px-5 py-4 sm:px-8 sm:py-5">
-              <IconSearch className="size-6 shrink-0 text-[#5c5e61]" />
-              <label htmlFor="theme-search" className="sr-only">
-                Search themes
-              </label>
-              <input
-                id="theme-search"
-                value={themeQuery}
-                onChange={(event) => setThemeQuery(event.target.value)}
-                placeholder="Theme..."
-                autoFocus
-            className="h-12 flex-1 bg-transparent text-2xl tracking-[-0.04em] text-[#4e5358] placeholder:text-[#6d7175] focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setIsThemeModalOpen(false)}
-                className="inline-flex size-11 items-center justify-center rounded-2xl text-[#5c5e61] transition-colors hover:bg-black/5 hover:text-[#27292c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a4d50]/20"
-              >
-                <IconX className="size-5" />
-              </button>
-            </div>
-
-            <div className="max-h-[70vh] overflow-y-auto px-2 py-4 sm:px-3">
-              {filteredThemes.length === 0 ? (
-                <div className="px-5 py-8 font-mono text-lg text-[#6d7175]">
-                  No themes found.
-                </div>
-              ) : (
-                filteredThemes.map((themeName) => {
-                  const currentTheme = siteThemes[themeName];
-                  const isActive = themeName === theme;
-
-                  return (
-                    <button
-                      key={themeName}
-                      type="button"
-                      onClick={() => {
-                        setTheme(themeName);
-                        clearPreviewTheme();
-                        setIsThemeModalOpen(false);
-                      }}
-                      onMouseEnter={() => previewTheme(themeName)}
-                      onFocus={() => previewTheme(themeName)}
-                      onMouseLeave={clearPreviewTheme}
-                      className={cn(
-                        "flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a4d50]/20 sm:px-5",
-                        isActive
-                          ? "bg-[#1f1f1f] text-white"
-                          : "text-[#505357] hover:bg-black/4",
-                      )}
-                    >
-                      <span className="inline-flex w-8 shrink-0 items-center justify-center">
-                        {isActive ? (
-                          <IconCheck className="size-6" />
-                        ) : null}
-                      </span>
-                      <span className="min-w-0 flex-1 text-[1.05rem] sm:text-[1.15rem]">
-                        {currentTheme.label.toLowerCase()}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2 rounded-full bg-white/90 px-2 py-1">
-                        <span
-                          className="size-6 rounded-full"
-                          style={{ backgroundColor: currentTheme.keyboard.accent.bg }}
-                        />
-                        <span
-                          className="size-6 rounded-full"
-                          style={{ backgroundColor: currentTheme.keyboard.dark.bg }}
-                        />
-                        <span
-                          className="size-6 rounded-full"
-                          style={{ backgroundColor: currentTheme.keyboard.light.bg }}
-                        />
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }

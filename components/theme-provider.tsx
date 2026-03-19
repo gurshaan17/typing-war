@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -17,6 +18,22 @@ import {
 } from "@/lib/site-theme";
 
 const STORAGE_KEY = "typing-wars-theme";
+
+function readStoredTheme(): KeyboardThemeName {
+  if (typeof window === "undefined") {
+    return defaultKeyboardTheme;
+  }
+
+  const storedTheme = window.localStorage.getItem(STORAGE_KEY);
+  if (
+    storedTheme &&
+    keyboardThemeNames.includes(storedTheme as KeyboardThemeName)
+  ) {
+    return storedTheme as KeyboardThemeName;
+  }
+
+  return defaultKeyboardTheme;
+}
 
 type ThemeContextValue = {
   theme: KeyboardThemeName;
@@ -60,22 +77,17 @@ function applyTheme(theme: KeyboardThemeName) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<KeyboardThemeName>(() => {
-    if (typeof window === "undefined") {
-      return defaultKeyboardTheme;
-    }
-
-    const storedTheme = window.localStorage.getItem(STORAGE_KEY);
-    if (
-      storedTheme &&
-      keyboardThemeNames.includes(storedTheme as KeyboardThemeName)
-    ) {
-      return storedTheme as KeyboardThemeName;
-    }
-
-    return defaultKeyboardTheme;
-  });
+  const persistedTheme = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("storage", callback);
+      return () => window.removeEventListener("storage", callback);
+    },
+    readStoredTheme,
+    () => defaultKeyboardTheme,
+  );
+  const [manualTheme, setManualTheme] = useState<KeyboardThemeName | null>(null);
   const [previewThemeState, setPreviewThemeState] = useState<KeyboardThemeName | null>(null);
+  const theme = manualTheme ?? persistedTheme;
 
   useEffect(() => {
     applyTheme(previewThemeState ?? theme);
@@ -88,7 +100,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       theme,
-      setTheme,
+      setTheme: (nextTheme: KeyboardThemeName) => setManualTheme(nextTheme),
       previewTheme: setPreviewThemeState,
       clearPreviewTheme: () => setPreviewThemeState(null),
     }),
