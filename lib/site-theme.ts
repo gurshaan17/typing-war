@@ -426,4 +426,4 @@ export const siteThemes: Record<KeyboardThemeName, SiteThemeDefinition> = {
   }),
 };
 
-export const defaultKeyboardTheme: KeyboardThemeName = "classic";
+export const defaultKeyboardTheme: KeyboardThemeName = "rainbow-trail";
