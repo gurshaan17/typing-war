@@ -39,7 +39,7 @@ function getRandomSnippetIndex(currentIndex?: number) {
 }
 
 export function LandingPage() {
-  const [snippetIndex, setSnippetIndex] = useState(() => getRandomSnippetIndex());
+  const [snippetIndex, setSnippetIndex] = useState(17);
   const [typedText, setTypedText] = useState("");
   const [duration, setDuration] = useState<(typeof TEST_TIMES)[number]>(30);
   const [secondsLeft, setSecondsLeft] = useState(30);
