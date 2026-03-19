@@ -5,6 +5,7 @@ export type CaretStyle = {
 };
 
 export type CharacterState = "pending" | "correct" | "incorrect";
+export type TestMode = "time" | "words" | "custom";
 
 export type TestMetrics = {
   accuracy: number;

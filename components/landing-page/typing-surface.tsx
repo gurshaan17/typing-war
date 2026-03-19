@@ -4,11 +4,20 @@ import type { MutableRefObject, RefObject } from "react";
 import { IconRefresh } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
-import type { CaretStyle, CharacterState, TestMetrics } from "@/components/landing-page/types";
+import type {
+  CaretStyle,
+  CharacterState,
+  TestMetrics,
+  TestMode,
+} from "@/components/landing-page/types";
 
 type TypingSurfaceProps = {
-  duration: number;
-  secondsLeft: number;
+  mode: TestMode;
+  timeLimit: number;
+  wordLimit: number;
+  elapsedSeconds: number;
+  timePresets: readonly (15 | 30 | 45 | 60)[];
+  wordPresets: readonly (10 | 25 | 50 | 100)[];
   metrics: TestMetrics;
   snippet: string;
   typedText: string;
@@ -23,11 +32,22 @@ type TypingSurfaceProps = {
   onFocusChange: (isFocused: boolean) => void;
   onFocusTypingArea: () => void;
   onRestart: () => void;
+  onModeChange: (mode: TestMode) => void;
+  onTimeLimitChange: (value: 15 | 30 | 45 | 60) => void;
+  onWordLimitChange: (value: 10 | 25 | 50 | 100) => void;
+  customTextDraft: string;
+  customTextReady: boolean;
+  onCustomTextDraftChange: (value: string) => void;
+  onApplyCustomText: () => void;
 };
 
 export function TypingSurface({
-  duration,
-  secondsLeft,
+  mode,
+  timeLimit,
+  wordLimit,
+  elapsedSeconds,
+  timePresets,
+  wordPresets,
   metrics,
   snippet,
   typedText,
@@ -42,15 +62,67 @@ export function TypingSurface({
   onFocusChange,
   onFocusTypingArea,
   onRestart,
+  onModeChange,
+  onTimeLimitChange,
+  onWordLimitChange,
+  customTextDraft,
+  customTextReady,
+  onCustomTextDraftChange,
+  onApplyCustomText,
 }: TypingSurfaceProps) {
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground sm:mb-8">
-        <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
-          mode <span className="ml-2 text-foreground">time</span>
+        <div className="inline-flex items-center gap-1 rounded-2xl border border-border/70 bg-[var(--site-panel-muted)] p-1 backdrop-blur-sm">
+          {(["time", "words", "custom"] as const).map((modeOption) => (
+            <button
+              key={modeOption}
+              type="button"
+              onClick={() => onModeChange(modeOption)}
+              className={cn(
+                "inline-flex min-h-10 items-center rounded-xl px-3 text-sm capitalize transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                mode === modeOption
+                  ? "bg-primary text-primary-foreground shadow-[0_10px_30px_var(--site-glow)]"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {modeOption}
+            </button>
+          ))}
         </div>
+
+        <div
+          className={cn(
+            "inline-flex items-center gap-1 overflow-hidden rounded-2xl border border-border/70 bg-[var(--site-panel-muted)] p-1 backdrop-blur-sm transition-all duration-250 ease-out",
+            mode === "custom"
+              ? "max-w-0 scale-95 opacity-0"
+              : "max-w-[24rem] scale-100 opacity-100",
+          )}
+          aria-hidden={mode === "custom"}
+        >
+          {(mode === "time" ? timePresets : wordPresets).map((value) => (
+            <button
+              key={`${mode}-${value}`}
+              type="button"
+              onClick={() =>
+                mode === "time"
+                  ? onTimeLimitChange(value as 15 | 30 | 45 | 60)
+                  : onWordLimitChange(value as 10 | 25 | 50 | 100)
+              }
+              className={cn(
+                "inline-flex min-h-10 items-center rounded-xl px-3 text-sm transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                (mode === "time" ? timeLimit === value : wordLimit === value)
+                  ? "bg-white/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
-          time <span className="ml-2 text-foreground">{duration}s</span>
+          mode <span className="ml-2 text-foreground">{mode}</span>
         </div>
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
           wpm <span className="ml-2 text-foreground">{metrics.wpm}</span>
@@ -59,7 +131,55 @@ export function TypingSurface({
           acc <span className="ml-2 text-foreground">{metrics.accuracy}%</span>
         </div>
         <div className="rounded-full border border-border/70 bg-[var(--site-panel-muted)] px-3 py-1.5 backdrop-blur-sm">
-          left <span className="ml-2 text-foreground">{secondsLeft}s</span>
+          {mode === "time" ? "left" : "elapsed"}
+          <span className="ml-2 text-foreground">{elapsedSeconds}s</span>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-out",
+          mode === "custom"
+            ? "mb-6 max-h-[20rem] translate-y-0 opacity-100 sm:mb-8"
+            : "mb-0 max-h-0 -translate-y-2 opacity-0",
+        )}
+        aria-hidden={mode !== "custom"}
+      >
+        <div className="rounded-[2rem] border border-border/70 bg-[var(--site-panel-muted)] p-4 backdrop-blur-xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm tracking-[0.16em] text-muted-foreground uppercase">
+                custom text
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Paste or write the text you want to practice.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onApplyCustomText}
+              className="inline-flex min-h-10 items-center rounded-2xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              apply text
+            </button>
+          </div>
+
+          <textarea
+            value={customTextDraft}
+            onChange={(event) => onCustomTextDraftChange(event.target.value)}
+            placeholder="Type or paste your custom text here..."
+            className="min-h-32 w-full resize-y rounded-[1.5rem] border border-border/70 bg-black/10 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            spellCheck={false}
+          />
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs tracking-[0.14em] text-muted-foreground uppercase">
+            <span className="rounded-full border border-border/60 px-3 py-1.5">
+              {customTextDraft.trim().length} chars
+            </span>
+            <span className="rounded-full border border-border/60 px-3 py-1.5">
+              {customTextReady ? "ready to type" : "apply text to start"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -107,7 +227,13 @@ export function TypingSurface({
                 transform: `translate3d(${caretStyle.left}px, ${caretStyle.top}px, 0)`,
               }}
             />
-            {snippet.split("").map((char, index) => {
+            {snippet.length === 0 ? (
+              <div className="flex min-h-[12rem] items-center justify-center text-center text-lg text-muted-foreground">
+                {mode === "custom"
+                  ? "Add your custom text above, then press apply text to begin."
+                  : "No text loaded."}
+              </div>
+            ) : snippet.split("").map((char, index) => {
               const characterState = getCharacterState(index);
               const isActive = index === typedText.length;
 

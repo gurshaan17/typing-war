@@ -1,4 +1,6 @@
 export const TEST_TIMES = [15, 30, 60, 120] as const;
+export const TIME_MODE_PRESETS = [15, 30, 45, 60] as const;
+export const WORD_MODE_PRESETS = [10, 25, 50, 100] as const;
 export const CHART_WIDTH = 960;
 export const CHART_HEIGHT = 320;
 export const CHART_PADDING = { top: 18, right: 28, bottom: 36, left: 52 };
@@ -22,6 +24,32 @@ export function getRandomSnippetIndex(
   }
 
   return nextIndex;
+}
+
+export function getRandomSentence(
+  sentences: string[],
+  currentSentence?: string,
+) {
+  if (sentences.length === 0) {
+    return "";
+  }
+
+  const currentIndex = currentSentence ? sentences.indexOf(currentSentence) : undefined;
+  return sentences[getRandomSnippetIndex(sentences, currentIndex)];
+}
+
+export function getRandomWordsSnippet(
+  words: string[],
+  count: number,
+) {
+  if (words.length === 0 || count <= 0) {
+    return "";
+  }
+
+  return Array.from({ length: count }, () => {
+    const index = Math.floor(Math.random() * words.length);
+    return words[index];
+  }).join(" ");
 }
 
 export function clamp(value: number, min: number, max: number) {

@@ -105,6 +105,10 @@
       radial-gradient(circle at top, var(--site-hero-from), transparent 22%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%);
     min-height: 100dvh;
+    transition: opacity 180ms ease;
+  }
+  html[data-theme-ready="false"] body {
+    opacity: 0;
   }
   ::selection {
     background: color-mix(in srgb, var(--primary) 55%, transparent);
