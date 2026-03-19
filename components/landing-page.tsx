@@ -41,7 +41,6 @@ export function LandingPage() {
   const [raceLink, setRaceLink] = useState("");
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const textViewportRef = useRef<HTMLDivElement>(null);
   const textSurfaceRef = useRef<HTMLDivElement>(null);
   const characterRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const [caretStyle, setCaretStyle] = useState<CaretStyle>({
@@ -159,9 +158,8 @@ export function LandingPage() {
   }
 
   useLayoutEffect(() => {
-    const viewport = textViewportRef.current;
     const container = textSurfaceRef.current;
-    if (!container || !viewport) {
+    if (!container) {
       return;
     }
 
@@ -188,25 +186,6 @@ export function LandingPage() {
       top: targetRect.top - containerRect.top,
       height: targetRect.height,
     });
-
-    const viewportRect = viewport.getBoundingClientRect();
-    const lineTop = targetRect.top - viewportRect.top + viewport.scrollTop;
-    const lineBottom = targetRect.bottom - viewportRect.top + viewport.scrollTop;
-    const scrollPadding = Math.max(targetRect.height * 1.35, 32);
-    const currentScrollTop = viewport.scrollTop;
-    const currentScrollBottom = currentScrollTop + viewport.clientHeight;
-
-    if (lineTop - scrollPadding < currentScrollTop) {
-      viewport.scrollTo({
-        top: Math.max(lineTop - scrollPadding, 0),
-        behavior: "smooth",
-      });
-    } else if (lineBottom + scrollPadding > currentScrollBottom) {
-      viewport.scrollTo({
-        top: lineBottom + scrollPadding - viewport.clientHeight,
-        behavior: "smooth",
-      });
-    }
   }, [snippet, typedText, isFinished]);
 
   useEffect(() => {
@@ -399,11 +378,9 @@ export function LandingPage() {
             </div>
 
             <div
-              role="button"
-              tabIndex={0}
               onClick={focusTypingArea}
               onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
+                if (event.key === "Enter") {
                   event.preventDefault();
                   focusTypingArea();
                 }
@@ -426,13 +403,10 @@ export function LandingPage() {
                 autoCorrect="off"
               />
 
-              <div
-                ref={textViewportRef}
-                className="typing-scrollbar relative mx-auto max-h-[min(48vh,24rem)] overflow-y-auto px-1 sm:max-h-[min(52vh,30rem)]"
-              >
+              <div className="relative min-h-[20rem] px-1 sm:min-h-[24rem]">
                 <div
                   ref={textSurfaceRef}
-                  className="relative mx-auto max-w-[26ch] pr-3 text-left font-mono text-[clamp(1.85rem,4vw,5rem)] leading-[1.42] tracking-[-0.055em] [font-variant-numeric:tabular-nums] sm:max-w-[28ch]"
+                  className="relative w-full text-left font-mono text-[clamp(1.15rem,1.9vw,2.05rem)] leading-[1.68] tracking-[-0.03em] [font-variant-numeric:tabular-nums]"
                 >
                   <span
                     aria-hidden="true"
@@ -456,7 +430,7 @@ export function LandingPage() {
                           characterRefs.current[index] = node;
                         }}
                         className={cn(
-                          "relative whitespace-pre rounded-[0.18em] transition-[color,background-color,box-shadow,opacity] duration-100 ease-out",
+                          "relative rounded-[0.18em] transition-[color,background-color,box-shadow,opacity] duration-100 ease-out",
                           characterState === "pending" && "text-foreground/22",
                           characterState === "correct" && "text-foreground/94",
                           characterState === "incorrect" &&
