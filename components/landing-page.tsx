@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  IconBolt,
   IconClockHour4,
   IconCopy,
   IconFlag3,
@@ -11,12 +10,7 @@ import {
 } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
-
-const TEST_SNIPPETS = [
-  "Typing Wars turns warmup sessions into a focused duel where accuracy matters as much as raw speed across the final stretch.",
-  "Create a racetrack, share the link with friends, and let the leaderboard decide who keeps control when the pressure starts building.",
-  "Fast fingers look good for a second, but steady rhythm wins more races once every mistake starts costing real momentum.",
-] as const;
+import randomSentences from "@/random-sentences.json";
 
 const TEST_TIMES = [15, 30, 60, 120] as const;
 
@@ -30,8 +24,22 @@ function createRaceId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
+function getRandomSnippetIndex(currentIndex?: number) {
+  if (randomSentences.length <= 1) {
+    return 0;
+  }
+
+  let nextIndex = Math.floor(Math.random() * randomSentences.length);
+
+  while (nextIndex === currentIndex) {
+    nextIndex = Math.floor(Math.random() * randomSentences.length);
+  }
+
+  return nextIndex;
+}
+
 export function LandingPage() {
-  const [snippetIndex, setSnippetIndex] = useState(0);
+  const [snippetIndex, setSnippetIndex] = useState(() => getRandomSnippetIndex());
   const [typedText, setTypedText] = useState("");
   const [duration, setDuration] = useState<(typeof TEST_TIMES)[number]>(30);
   const [secondsLeft, setSecondsLeft] = useState(30);
@@ -50,7 +58,7 @@ export function LandingPage() {
   });
   const [isTypingFocused, setIsTypingFocused] = useState(false);
 
-  const snippet = TEST_SNIPPETS[snippetIndex];
+  const snippet = randomSentences[snippetIndex] ?? "";
   const elapsedSeconds = hasStarted ? Math.max(duration - secondsLeft, 1) : 1;
 
   const metrics = useMemo(() => {
@@ -244,7 +252,7 @@ export function LandingPage() {
   }
 
   function handleNextQuote() {
-    resetTest((snippetIndex + 1) % TEST_SNIPPETS.length, duration);
+    resetTest(getRandomSnippetIndex(snippetIndex), duration);
     focusTypingArea();
   }
 
@@ -446,18 +454,6 @@ export function LandingPage() {
                   })}
                 </div>
               </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs tracking-[0.16em] text-muted-foreground uppercase">
-                <span className="rounded-full border border-border/70 px-3 py-1.5">
-                  smooth caret
-                </span>
-                <span className="rounded-full border border-border/70 px-3 py-1.5">
-                  red underline = typo
-                </span>
-                <span className="rounded-full border border-border/70 px-3 py-1.5">
-                  wraps automatically
-                </span>
-              </div>
             </div>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
@@ -472,10 +468,14 @@ export function LandingPage() {
                 <IconRefresh className="size-4" />
                 restart test
               </button>
-              <div className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-3">
-                <IconBolt className="size-4 text-primary" />
-                {isFinished ? "finished" : hasStarted ? "in progress" : "ready"}
-              </div>
+              <button
+                type="button"
+                onClick={handleNextQuote}
+                className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <IconRefresh className="size-4" />
+                random text
+              </button>
             </div>
           </div>
         </section>
