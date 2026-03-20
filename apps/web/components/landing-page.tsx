@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { LandingHeader } from "@/components/landing-page/header";
 import {
@@ -14,7 +15,6 @@ import {
   TIME_MODE_PRESETS,
   WORD_MODE_PRESETS,
 } from "@/components/landing-page/helpers";
-import { RaceLinkBanner } from "@/components/landing-page/race-link-banner";
 import { ResultsPanel } from "@/components/landing-page/results-panel";
 import {
   ThemePickerFab,
@@ -166,6 +166,7 @@ function useChartData(
 }
 
 export function LandingPage() {
+  const router = useRouter();
   const { theme, setTheme, previewTheme, clearPreviewTheme } = useSiteTheme();
 
   const [mode, setMode] = useState<TestMode>("time");
@@ -178,8 +179,6 @@ export function LandingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [raceLink, setRaceLink] = useState("");
-  const [copied, setCopied] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [themeQuery, setThemeQuery] = useState("");
@@ -234,15 +233,6 @@ export function LandingPage() {
   useEffect(() => {
     errorEventsRef.current = errorEvents;
   }, [errorEvents]);
-
-  useEffect(() => {
-    if (!copied) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setCopied(false), 1800);
-    return () => window.clearTimeout(timeout);
-  }, [copied]);
 
   useEffect(() => {
     if (!isFinished) {
@@ -542,32 +532,11 @@ export function LandingPage() {
   const handleCreateRace = useCallback(async () => {
     try {
       const roomId = await createRoom();
-      const nextLink = `${window.location.origin}/race/${roomId}`;
-      setRaceLink(nextLink);
-
-      try {
-        await navigator.clipboard.writeText(nextLink);
-        setCopied(true);
-      } catch {
-        setCopied(false);
-      }
+      router.push(`/race/${roomId}`);
     } catch (error) {
       console.error("Failed to create race room", error);
     }
-  }, []);
-
-  const handleCopyRaceLink = useCallback(async () => {
-    if (!raceLink) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(raceLink);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  }, [raceLink]);
+  }, [router]);
 
   const handleApplyCustomText = useCallback(() => {
     const nextSnippet = customTextDraft.trim();
@@ -586,12 +555,6 @@ export function LandingPage() {
         <LandingHeader
           onNextQuote={handleNextQuote}
           onCreateRace={handleCreateRace}
-        />
-
-        <RaceLinkBanner
-          raceLink={raceLink}
-          copied={copied}
-          onCopy={handleCopyRaceLink}
         />
 
         <section className="flex flex-1 items-center justify-center py-8 sm:py-10">
