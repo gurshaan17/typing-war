@@ -112,7 +112,7 @@ export function TypingSurface({
               className={cn(
                 "inline-flex min-h-10 items-center rounded-xl px-3 text-sm transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 (mode === "time" ? timeLimit === value : wordLimit === value)
-                  ? "bg-white/10 text-foreground"
+                  ? "scale-[1.03] bg-primary text-primary-foreground shadow-[0_12px_28px_var(--site-glow)] ring-1 ring-white/12"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -248,7 +248,7 @@ export function TypingSurface({
                     characterState === "pending" && "text-foreground/22",
                     characterState === "correct" && "text-foreground/94",
                     characterState === "incorrect" &&
-                      "bg-red-500/12 text-red-200 underline decoration-red-300/85 decoration-[0.08em] underline-offset-[0.18em]",
+                      "bg-[#ffe1e1] text-[#7f1d1d] shadow-[inset_0_0_0_1px_rgba(127,29,29,0.12)] underline decoration-[#c24141]/85 decoration-[0.08em] underline-offset-[0.18em]",
                     isActive && "bg-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]",
                   )}
                 >

@@ -16,6 +16,7 @@ import {
   CHART_WIDTH,
   clamp,
 } from "@/components/landing-page/helpers";
+import { getPreferredWsUrl } from "@/lib/api";
 import type {
   CaretStyle,
   ChartData,
@@ -26,8 +27,6 @@ import type {
   TestMetrics,
 } from "@/components/landing-page/types";
 import type { Player, RoomState, ServerEvent } from "@repo/shared";
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:3001";
 
 function useTestMetrics(
   typedText: string,
@@ -469,7 +468,7 @@ export function useRaceRoom(roomId: string) {
       return;
     }
 
-    const socket = new WebSocket(`${WS_URL}/race/${roomId}`);
+    const socket = new WebSocket(`${getPreferredWsUrl()}/race/${roomId}`);
     wsRef.current = socket;
 
     socket.addEventListener("open", () => {
