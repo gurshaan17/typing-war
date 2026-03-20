@@ -192,10 +192,11 @@ export default function RacePage() {
             ) : null}
           </div>
 
-          {!hasJoined && !connectionError ? <NameModal onJoin={join} /> : null}
           {roomState === "countdown" ? <CountdownOverlay countdown={countdown} /> : null}
         </section>
       </div>
+
+      {!hasJoined && !connectionError ? <NameModal onJoin={join} /> : null}
 
       <ThemePickerFab
         themeLabel={siteThemes[theme].label}
