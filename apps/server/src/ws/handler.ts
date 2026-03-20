@@ -46,6 +46,9 @@ export function wsHandler(ws: WebSocket, req: FastifyRequest): void {
       case "join":
         room.addClient(connId, ws, event.name);
         break;
+      case "update_config":
+        room.updateConfig(connId, event.config);
+        break;
       case "start_race":
         room.startRace(connId);
         break;

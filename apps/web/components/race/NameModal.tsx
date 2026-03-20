@@ -19,7 +19,7 @@ export function NameModal({ onJoin }: NameModalProps) {
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex min-h-dvh items-center justify-center bg-black/50 px-4">
+    <div className="absolute inset-0 z-50 flex min-h-dvh items-center justify-center bg-black/38 px-4 backdrop-blur-[1.5px]">
       <div className="w-full max-w-sm rounded-xl border border-border bg-background p-8 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
         <h2 className="text-2xl font-semibold tracking-[-0.04em] text-foreground">
           Enter your name

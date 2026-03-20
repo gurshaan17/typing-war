@@ -12,6 +12,10 @@ import { RaceLobby } from "@/components/race/RaceLobby";
 import { RaceResultsPanel } from "@/components/race/RaceResultsPanel";
 import { TypingSurface } from "@/components/landing-page/typing-surface";
 import {
+  TIME_MODE_PRESETS,
+  WORD_MODE_PRESETS,
+} from "@/components/landing-page/helpers";
+import {
   ThemePickerFab,
   ThemePickerModal,
 } from "@/components/landing-page/theme-picker-modal";
@@ -43,7 +47,9 @@ export default function RacePage() {
     hostConnId,
     isHost,
     startRace,
+    updateConfig,
     countdown,
+    roomConfig,
     passage,
     typedText,
     elapsedSeconds,
@@ -127,6 +133,10 @@ export default function RacePage() {
                   hostConnId={hostConnId}
                   isHost={isHost}
                   roomId={roomId}
+                  roomConfig={roomConfig}
+                  timePresets={TIME_MODE_PRESETS}
+                  wordPresets={WORD_MODE_PRESETS}
+                  onUpdateConfig={updateConfig}
                   onStartRace={startRace}
                 />
               </div>
@@ -135,12 +145,16 @@ export default function RacePage() {
             {!connectionError && roomState === "racing" ? (
               <>
                 <TypingSurface
-                  mode="words"
-                  timeLimit={30}
-                  wordLimit={25}
-                  elapsedSeconds={elapsedSeconds}
-                  timePresets={[15, 30, 45, 60]}
-                  wordPresets={[10, 25, 50, 100]}
+                  mode={roomConfig.mode}
+                  timeLimit={roomConfig.timeLimit}
+                  wordLimit={roomConfig.wordLimit}
+                  elapsedSeconds={
+                    roomConfig.mode === "time"
+                      ? Math.max(roomConfig.timeLimit - elapsedSeconds, 0)
+                      : elapsedSeconds
+                  }
+                  timePresets={TIME_MODE_PRESETS}
+                  wordPresets={WORD_MODE_PRESETS}
                   metrics={metrics}
                   snippet={passage}
                   typedText={typedText}
@@ -165,6 +179,8 @@ export default function RacePage() {
                   customTextReady={false}
                   onCustomTextDraftChange={() => undefined}
                   onApplyCustomText={() => undefined}
+                  showModeControls={false}
+                  showCustomComposer={false}
                 />
                 <PitLaneLeaderboard
                   players={players}
@@ -192,10 +208,11 @@ export default function RacePage() {
             ) : null}
           </div>
 
-          {!hasJoined && !connectionError ? <NameModal onJoin={join} /> : null}
-          {roomState === "countdown" ? <CountdownOverlay countdown={countdown} /> : null}
         </section>
       </div>
+
+      {!hasJoined && !connectionError ? <NameModal onJoin={join} /> : null}
+      {roomState === "countdown" ? <CountdownOverlay countdown={countdown} /> : null}
 
       <ThemePickerFab
         themeLabel={siteThemes[theme].label}
