@@ -219,7 +219,7 @@ export function TypingSurface({
           readOnly={isLocked}
         />
 
-        <div className="relative min-h-[20rem] px-1 sm:min-h-[24rem]">
+        <div className="relative min-h-[8.5rem] px-1 sm:min-h-[10.5rem]">
           <div
             ref={textSurfaceRef}
             className="relative w-full text-left font-mono text-[clamp(1.15rem,1.9vw,2.05rem)] leading-[1.68] tracking-[-0.03em] [font-variant-numeric:tabular-nums]"
@@ -236,7 +236,7 @@ export function TypingSurface({
               }}
             />
             {snippet.length === 0 ? (
-              <div className="flex min-h-[12rem] items-center justify-center text-center text-lg text-muted-foreground">
+              <div className="flex min-h-[8.5rem] items-center justify-center text-center text-lg text-muted-foreground sm:min-h-[10.5rem]">
                 {mode === "custom"
                   ? "Add your custom text above, then press apply text to begin."
                   : "No text loaded."}
