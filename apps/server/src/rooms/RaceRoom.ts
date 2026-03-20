@@ -1,18 +1,46 @@
 import WebSocket from "ws";
 
-import type { Player, RoomState, ServerEvent } from "@repo/shared";
+import type { Player, RaceConfig, RoomState, ServerEvent } from "@repo/shared";
 
-import { getRandomPassage } from "../passages";
+import { getRandomPassage, getRandomWordsPassage } from "../passages";
 
 const RACE_TIMEOUT_MS = 3 * 60 * 1000;
 const PROGRESS_TICK_MS = 100;
 const COUNTDOWN_SECONDS = 3;
+const DEFAULT_CONFIG: RaceConfig = {
+  mode: "time",
+  timeLimit: 30,
+  wordLimit: 25,
+  customText: "",
+};
+
+function sanitizeConfig(config: RaceConfig): RaceConfig {
+  return {
+    mode: config.mode,
+    timeLimit: [15, 30, 45, 60].includes(config.timeLimit) ? config.timeLimit : 30,
+    wordLimit: [10, 25, 50, 100].includes(config.wordLimit) ? config.wordLimit : 25,
+    customText: config.customText.trim(),
+  };
+}
+
+function getPassageForConfig(config: RaceConfig, previousPassage?: string): string {
+  if (config.mode === "words") {
+    return getRandomWordsPassage(config.wordLimit, previousPassage);
+  }
+
+  if (config.mode === "custom") {
+    return config.customText.trim();
+  }
+
+  return getRandomPassage(previousPassage);
+}
 
 export class RaceRoom {
   readonly roomId: string;
   state: RoomState = "lobby";
   hostConnId: string;
   passage: string;
+  config: RaceConfig = DEFAULT_CONFIG;
   raceCount = 0;
   raceStartedAt = 0;
   createdAt = Date.now();
@@ -28,7 +56,7 @@ export class RaceRoom {
   constructor(roomId: string, hostConnId: string) {
     this.roomId = roomId;
     this.hostConnId = hostConnId;
-    this.passage = getRandomPassage();
+    this.passage = getPassageForConfig(this.config);
   }
 
   addClient(connId: string, ws: WebSocket, name: string): void {
@@ -64,6 +92,7 @@ export class RaceRoom {
       players: Array.from(this.players.values()),
       hostConnId: this.hostConnId,
       raceCount: this.raceCount,
+      config: this.config,
     });
 
     this.lastActivityAt = Date.now();
@@ -112,8 +141,36 @@ export class RaceRoom {
         players: Array.from(this.players.values()),
         hostConnId: this.hostConnId,
         raceCount: this.raceCount,
+        config: this.config,
       });
     }
+  }
+
+  updateConfig(connId: string, config: RaceConfig): void {
+    if (connId !== this.hostConnId) {
+      return;
+    }
+
+    if (this.state !== "lobby" && this.state !== "results") {
+      return;
+    }
+
+    this.config = sanitizeConfig(config);
+    this.passage = getPassageForConfig(
+      this.config,
+      this.config.mode === "custom" ? undefined : this.passage,
+    );
+    this.lastActivityAt = Date.now();
+
+    this.broadcast({
+      type: "room_state",
+      state: this.state,
+      passage: this.passage,
+      players: Array.from(this.players.values()),
+      hostConnId: this.hostConnId,
+      raceCount: this.raceCount,
+      config: this.config,
+    });
   }
 
   startRace(connId: string): void {
@@ -129,6 +186,14 @@ export class RaceRoom {
       this.reset();
     }
 
+    if (this.config.mode === "custom" && this.config.customText.trim().length === 0) {
+      this.sendTo(connId, {
+        type: "error",
+        message: "Add custom text before starting the race",
+      });
+      return;
+    }
+
     this.state = "countdown";
     this.lastActivityAt = Date.now();
 
@@ -139,6 +204,7 @@ export class RaceRoom {
       players: Array.from(this.players.values()),
       hostConnId: this.hostConnId,
       raceCount: this.raceCount,
+      config: this.config,
     });
 
     const tickCountdown = (remaining: number) => {
@@ -155,7 +221,10 @@ export class RaceRoom {
       }
 
       this.state = "racing";
-      this.passage = getRandomPassage(this.passage);
+      this.passage = getPassageForConfig(
+        this.config,
+        this.config.mode === "custom" ? undefined : this.passage,
+      );
       this.raceStartedAt = Date.now();
       this.lastBroadcastedProgress = "";
 
@@ -163,6 +232,7 @@ export class RaceRoom {
         type: "race_started",
         passage: this.passage,
         startedAt: this.raceStartedAt,
+        config: this.config,
       });
 
       this.progressTimer = setInterval(() => {
@@ -171,7 +241,7 @@ export class RaceRoom {
 
       this.raceTimeoutTimer = setTimeout(() => {
         this.endRace();
-      }, RACE_TIMEOUT_MS);
+      }, this.config.mode === "time" ? this.config.timeLimit * 1000 : RACE_TIMEOUT_MS);
     };
 
     tickCountdown(COUNTDOWN_SECONDS);
@@ -270,12 +340,16 @@ export class RaceRoom {
       players: Array.from(this.players.values()),
       hostConnId: this.hostConnId,
       raceCount: this.raceCount,
+      config: this.config,
     });
   }
 
   private reset(): void {
     this.raceCount += 1;
-    this.passage = getRandomPassage(this.passage);
+    this.passage = getPassageForConfig(
+      this.config,
+      this.config.mode === "custom" ? undefined : this.passage,
+    );
     this.state = "lobby";
     this.raceStartedAt = 0;
     this.lastBroadcastedProgress = "";

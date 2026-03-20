@@ -11,6 +11,17 @@ export const passages = [
   "Lightweight room management can go a long way in a realtime game. Clean identifiers, predictable cleanup, and simple event contracts make the system easier to reason about. When the protocol is straightforward, both the client and server stay easier to debug."
 ];
 
+const commonWords = [
+  "the", "focus", "track", "race", "quick", "signal", "steady", "launch",
+  "typing", "speed", "drift", "clean", "final", "score", "corner", "boost",
+  "exact", "rhythm", "sprint", "quiet", "smart", "react", "press", "input",
+  "crowd", "meter", "glide", "flash", "start", "finish", "frame", "light",
+  "storm", "calm", "pixel", "circuit", "leader", "smooth", "timing", "shift",
+  "align", "pace", "focuses", "brisk", "motion", "signal", "engine", "pulse",
+  "screen", "streak", "center", "anchor", "rapid", "energy", "vector", "gold",
+  "mint", "rally", "sail", "amber", "spark", "future", "driven", "fleet",
+];
+
 export function getRandomPassage(previousPassage?: string): string {
   if (passages.length === 0) {
     return "";
@@ -24,6 +35,23 @@ export function getRandomPassage(previousPassage?: string): string {
 
   while (nextPassage === previousPassage) {
     nextPassage = passages[Math.floor(Math.random() * passages.length)];
+  }
+
+  return nextPassage;
+}
+
+export function getRandomWordsPassage(count: number, previousPassage?: string): string {
+  if (count <= 0) {
+    return "";
+  }
+
+  let nextPassage = "";
+
+  while (!nextPassage || nextPassage === previousPassage) {
+    nextPassage = Array.from({ length: count }, () => {
+      const index = Math.floor(Math.random() * commonWords.length);
+      return commonWords[index];
+    }).join(" ");
   }
 
   return nextPassage;

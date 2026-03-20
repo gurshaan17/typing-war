@@ -26,7 +26,14 @@ import type {
   ResultMetrics,
   TestMetrics,
 } from "@/components/landing-page/types";
-import type { Player, RoomState, ServerEvent } from "@repo/shared";
+import type { ClientEvent, Player, RaceConfig, RoomState, ServerEvent } from "@repo/shared";
+
+const DEFAULT_RACE_CONFIG: RaceConfig = {
+  mode: "time",
+  timeLimit: 30,
+  wordLimit: 25,
+  customText: "",
+};
 
 function useTestMetrics(
   typedText: string,
@@ -225,6 +232,7 @@ export function useRaceRoom(roomId: string) {
   const [passage, setPassage] = useState("");
   const [hostConnId, setHostConnId] = useState<string | null>(null);
   const [raceCount, setRaceCount] = useState(0);
+  const [roomConfig, setRoomConfig] = useState<RaceConfig>(DEFAULT_RACE_CONFIG);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [raceStartedAt, setRaceStartedAt] = useState<number | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
@@ -265,7 +273,7 @@ export function useRaceRoom(roomId: string) {
 
   const elapsedForMetrics = hasStarted ? Math.max(elapsedSeconds, 1) : 1;
   const activeChartDuration = Math.max(
-    elapsedSeconds,
+    roomConfig.mode === "time" ? roomConfig.timeLimit : elapsedSeconds,
     performanceHistory.at(-1)?.second ?? 1,
   );
   const metrics = useTestMetrics(typedText, passage, elapsedForMetrics, errorEvents.length);
@@ -458,10 +466,18 @@ export function useRaceRoom(roomId: string) {
       const nextElapsed = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
       setElapsedSeconds(nextElapsed);
       recordPerformancePoint(nextElapsed);
+
+      if (roomConfig.mode === "time" && nextElapsed >= roomConfig.timeLimit) {
+        window.clearInterval(timer);
+        setElapsedSeconds(roomConfig.timeLimit);
+        setIsRunning(false);
+        setIsFinished(true);
+        setIsTypingFocused(false);
+      }
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [isRunning, recordPerformancePoint]);
+  }, [isRunning, recordPerformancePoint, roomConfig.mode, roomConfig.timeLimit]);
 
   useEffect(() => {
     if (!roomId) {
@@ -510,6 +526,7 @@ export function useRaceRoom(roomId: string) {
           setPlayers(event.players);
           setHostConnId(event.hostConnId);
           setRaceCount(event.raceCount);
+          setRoomConfig(event.config);
 
           if (!myConnIdRef.current && pendingNameRef.current) {
             const me = event.players.find((player) => player.name === pendingNameRef.current);
@@ -559,6 +576,7 @@ export function useRaceRoom(roomId: string) {
         case "race_started":
           setPassage(event.passage);
           setRaceStartedAt(event.startedAt);
+          setRoomConfig(event.config);
           resetLocalTyping();
           setRoomState("racing");
           break;
@@ -640,6 +658,22 @@ export function useRaceRoom(roomId: string) {
     socket.send(JSON.stringify({ type: "start_race" }));
   }, []);
 
+  const updateConfig = useCallback((config: RaceConfig) => {
+    setRoomConfig(config);
+
+    const socket = wsRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const event: ClientEvent = {
+      type: "update_config",
+      config,
+    };
+
+    socket.send(JSON.stringify(event));
+  }, []);
+
   const sendProgress = useCallback((progress: number, wpm: number) => {
     const socket = wsRef.current;
 
@@ -714,7 +748,7 @@ export function useRaceRoom(roomId: string) {
       setTrailingErrorCount((currentCount) => {
         const nextCount = currentCount + 1;
 
-        if (nextCount >= 7) {
+        if (nextCount >= 15) {
           setShowErrorModal(true);
         }
 
@@ -776,6 +810,7 @@ export function useRaceRoom(roomId: string) {
     passage,
     hostConnId,
     raceCount,
+    roomConfig,
     countdown,
     typedText,
     elapsedSeconds,
@@ -794,6 +829,7 @@ export function useRaceRoom(roomId: string) {
     isHost,
     myPlayer,
     join,
+    updateConfig,
     startRace,
     handleTypingChange,
     dismissErrorModal,

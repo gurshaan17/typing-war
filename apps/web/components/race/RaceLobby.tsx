@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { IconCopy } from "@tabler/icons-react";
 
-import type { Player } from "@repo/shared";
+import { cn } from "@/lib/utils";
+import type { Player, RaceConfig } from "@repo/shared";
 
 type RaceLobbyProps = {
   players: Player[];
@@ -11,6 +12,10 @@ type RaceLobbyProps = {
   hostConnId: string | null;
   isHost: boolean;
   roomId: string;
+  roomConfig: RaceConfig;
+  timePresets: readonly (15 | 30 | 45 | 60)[];
+  wordPresets: readonly (10 | 25 | 50 | 100)[];
+  onUpdateConfig: (config: RaceConfig) => void;
   onStartRace: () => void;
 };
 
@@ -29,6 +34,10 @@ export function RaceLobby({
   hostConnId,
   isHost,
   roomId,
+  roomConfig,
+  timePresets,
+  wordPresets,
+  onUpdateConfig,
   onStartRace,
 }: RaceLobbyProps) {
   const [inviteLink, setInviteLink] = useState("");
@@ -110,6 +119,112 @@ export function RaceLobby({
         )}
       </div>
 
+      <div className="mt-6 rounded-xl border border-border/70 bg-[var(--site-panel-muted)] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Race settings</p>
+            <p className="text-sm text-muted-foreground">
+              {isHost ? "Pick the test type before launching the room." : "Host is configuring the room."}
+            </p>
+          </div>
+          {!isHost ? (
+            <span className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              host controls
+            </span>
+          ) : null}
+        </div>
+
+        <div className="inline-flex items-center gap-1 rounded-2xl border border-border/70 bg-background/60 p-1">
+          {(["time", "words", "custom"] as const).map((modeOption) => (
+            <button
+              key={modeOption}
+              type="button"
+              disabled={!isHost}
+              onClick={() =>
+                onUpdateConfig({
+                  ...roomConfig,
+                  mode: modeOption,
+                })
+              }
+              className={cn(
+                "inline-flex min-h-10 items-center rounded-xl px-3 text-sm capitalize transition-all duration-200",
+                roomConfig.mode === modeOption
+                  ? "bg-primary text-primary-foreground shadow-[0_10px_24px_var(--site-glow)]"
+                  : "text-muted-foreground hover:text-foreground",
+                !isHost && "cursor-not-allowed opacity-70",
+              )}
+            >
+              {modeOption}
+            </button>
+          ))}
+        </div>
+
+        {roomConfig.mode === "time" ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {timePresets.map((value) => (
+              <button
+                key={value}
+                type="button"
+                disabled={!isHost}
+                onClick={() => onUpdateConfig({ ...roomConfig, timeLimit: value })}
+                className={cn(
+                  "inline-flex min-h-10 items-center rounded-xl border border-border/70 px-3 text-sm transition-all duration-200",
+                  roomConfig.timeLimit === value
+                    ? "bg-primary text-primary-foreground shadow-[0_10px_24px_var(--site-glow)]"
+                    : "bg-background/60 text-muted-foreground hover:text-foreground",
+                  !isHost && "cursor-not-allowed opacity-70",
+                )}
+              >
+                {value}s
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {roomConfig.mode === "words" ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {wordPresets.map((value) => (
+              <button
+                key={value}
+                type="button"
+                disabled={!isHost}
+                onClick={() => onUpdateConfig({ ...roomConfig, wordLimit: value })}
+                className={cn(
+                  "inline-flex min-h-10 items-center rounded-xl border border-border/70 px-3 text-sm transition-all duration-200",
+                  roomConfig.wordLimit === value
+                    ? "bg-primary text-primary-foreground shadow-[0_10px_24px_var(--site-glow)]"
+                    : "bg-background/60 text-muted-foreground hover:text-foreground",
+                  !isHost && "cursor-not-allowed opacity-70",
+                )}
+              >
+                {value} words
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {roomConfig.mode === "custom" ? (
+          <div className="mt-4">
+            <textarea
+              value={roomConfig.customText}
+              onChange={(event) =>
+                onUpdateConfig({
+                  ...roomConfig,
+                  customText: event.target.value,
+                })
+              }
+              readOnly={!isHost}
+              placeholder="Paste or write the exact custom race text here..."
+              className="min-h-32 w-full resize-y rounded-xl border border-border bg-background/70 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              spellCheck={false}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {roomConfig.customText.trim().length} characters ready
+            </p>
+          </div>
+        ) : null}
+      </div>
+
       <div className="mt-6">
         <p className="text-sm font-medium text-foreground">Invite others</p>
         <div className="mt-3 flex gap-3">
@@ -134,7 +249,10 @@ export function RaceLobby({
           <button
             type="button"
             onClick={onStartRace}
-            disabled={players.length < 1}
+            disabled={
+              players.length < 1 ||
+              (roomConfig.mode === "custom" && roomConfig.customText.trim().length === 0)
+            }
             className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
           >
             Start race

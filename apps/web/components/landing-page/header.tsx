@@ -18,12 +18,12 @@ export function LandingHeader({
           <IconSwords className="size-5" />
         </div>
         <div>
-          <p className="text-xs tracking-[0.26em] text-muted-foreground uppercase">
+          <p className="text-2xl tracking-[0.26em] text-muted-foreground uppercase">
             typing wars
           </p>
-          <p className="text-xl font-semibold tracking-[-0.04em] text-foreground">
+          {/* <p className="text-xl font-semibold tracking-[-0.04em] text-foreground">
             Typing Wars
-          </p>
+          </p> */}
         </div>
       </div>
 
