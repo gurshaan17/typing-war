@@ -9,7 +9,6 @@ import {
   CHART_PADDING,
   CHART_WIDTH,
   clamp,
-  createRaceId,
   getRandomSentence,
   getRandomWordsSnippet,
   TIME_MODE_PRESETS,
@@ -22,6 +21,7 @@ import {
   ThemePickerModal,
 } from "@/components/landing-page/theme-picker-modal";
 import { TypingSurface } from "@/components/landing-page/typing-surface";
+import { createRoom } from "@/lib/api";
 import type {
   CaretStyle,
   ChartData,
@@ -540,14 +540,19 @@ export function LandingPage() {
   );
 
   const handleCreateRace = useCallback(async () => {
-    const nextLink = `${window.location.origin}/race/${createRaceId()}`;
-    setRaceLink(nextLink);
-
     try {
-      await navigator.clipboard.writeText(nextLink);
-      setCopied(true);
-    } catch {
-      setCopied(false);
+      const roomId = await createRoom();
+      const nextLink = `${window.location.origin}/race/${roomId}`;
+      setRaceLink(nextLink);
+
+      try {
+        await navigator.clipboard.writeText(nextLink);
+        setCopied(true);
+      } catch {
+        setCopied(false);
+      }
+    } catch (error) {
+      console.error("Failed to create race room", error);
     }
   }, []);
 

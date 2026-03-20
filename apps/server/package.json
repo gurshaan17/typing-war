@@ -1,0 +1,21 @@
+{
+  "name": "@repo/server",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8",
+    "@fastify/websocket": "^8",
+    "@repo/shared": "*",
+    "fastify": "^4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/ws": "^8",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

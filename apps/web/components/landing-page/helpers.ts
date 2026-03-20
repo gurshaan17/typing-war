@@ -5,10 +5,6 @@ export const CHART_WIDTH = 960;
 export const CHART_HEIGHT = 320;
 export const CHART_PADDING = { top: 18, right: 28, bottom: 36, left: 52 };
 
-export function createRaceId() {
-  return Math.random().toString(36).slice(2, 8);
-}
-
 export function getRandomSnippetIndex(
   sentences: string[],
   currentIndex?: number,
