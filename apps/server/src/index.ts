@@ -7,11 +7,14 @@ import { wsHandler } from "./ws/handler";
 
 const server = Fastify();
 const port = Number(process.env.PORT ?? 3001);
-const clientOrigin = process.env.CLIENT_ORIGIN ?? "http://localhost:3000";
+const clientOrigins = (process.env.CLIENT_ORIGIN ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 async function start() {
   await server.register(cors, {
-    origin: clientOrigin,
+    origin: clientOrigins,
   });
 
   await server.register(websocket);

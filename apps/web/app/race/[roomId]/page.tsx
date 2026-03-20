@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { CountdownOverlay } from "@/components/race/CountdownOverlay";
+import { ErrorWarningModal } from "@/components/race/ErrorWarningModal";
 import { NameModal } from "@/components/race/NameModal";
 import { PitLaneLeaderboard } from "@/components/race/PitLaneLeaderboard";
 import { RaceLobby } from "@/components/race/RaceLobby";
@@ -59,6 +60,8 @@ export default function RacePage() {
     handleFocusChange,
     handleRestart,
     wpmHistory,
+    showErrorModal,
+    dismissErrorModal,
     resultMetrics,
     chartData,
     raceCount,
@@ -144,6 +147,9 @@ export default function RacePage() {
                   caretStyle={caretStyle}
                   isTypingFocused={isTypingFocused}
                   isLocked={isFinished}
+                  // NOTE: do NOT lock the surface when there are errors —
+                  // the user must be able to keep typing and backspace.
+                  // isLocked should only be true after a clean finish.
                   textareaRef={textareaRef}
                   textSurfaceRef={textSurfaceRef}
                   characterRefs={characterRefs}
@@ -165,6 +171,9 @@ export default function RacePage() {
                   myConnId={myConnId}
                   wpmHistory={wpmHistory}
                 />
+                {showErrorModal ? (
+                  <ErrorWarningModal onDismiss={dismissErrorModal} />
+                ) : null}
               </>
             ) : null}
 

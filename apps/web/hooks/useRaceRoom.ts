@@ -33,13 +33,15 @@ function useTestMetrics(
   typedText: string,
   passage: string,
   elapsedSeconds: number,
+  errorCount: number,
 ): TestMetrics {
   return useMemo(() => {
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === passage[index]).length;
-    const accuracy = typedText.length
-      ? Math.round((correctChars / typedText.length) * 100)
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const words = correctChars / 5;
     const wpm = Math.round(words / (elapsedSeconds / 60));
@@ -48,7 +50,7 @@ function useTestMetrics(
       accuracy,
       wpm: Number.isFinite(wpm) ? wpm : 0,
     };
-  }, [elapsedSeconds, passage, typedText]);
+  }, [elapsedSeconds, errorCount, passage, typedText]);
 }
 
 function useResultMetrics(
@@ -63,7 +65,7 @@ function useResultMetrics(
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === passage[index]).length;
-    const incorrectChars = typedText.length - correctChars;
+    const incorrectChars = errorCount;
     const rawWpm = Math.round((typedText.length / 5 / elapsedSeconds) * 60);
     const consistencySamples = performanceHistory.map((point) => point.wpm);
     const averageWpm =
@@ -243,6 +245,8 @@ export function useRaceRoom(roomId: string) {
   });
   const [wpmHistory, setWpmHistory] = useState<Map<string, number[]>>(new Map());
   const [isTypingFocused, setIsTypingFocused] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [trailingErrorCount, setTrailingErrorCount] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const pendingNameRef = useRef<string | null>(null);
@@ -265,7 +269,7 @@ export function useRaceRoom(roomId: string) {
     elapsedSeconds,
     performanceHistory.at(-1)?.second ?? 1,
   );
-  const metrics = useTestMetrics(typedText, passage, elapsedForMetrics);
+  const metrics = useTestMetrics(typedText, passage, elapsedForMetrics, errorEvents.length);
   const resultMetrics = useResultMetrics(
     typedText,
     passage,
@@ -311,6 +315,8 @@ export function useRaceRoom(roomId: string) {
     setPerformanceHistory([]);
     setErrorEvents([]);
     setIsTypingFocused(false);
+    setShowErrorModal(false);
+    setTrailingErrorCount(0);
     startTimeRef.current = null;
   }, []);
 
@@ -320,12 +326,13 @@ export function useRaceRoom(roomId: string) {
     const correctChars = currentText
       .split("")
       .filter((char, index) => char === currentPassage[index]).length;
-    const accuracy = currentText.length
-      ? Math.round((correctChars / currentText.length) * 100)
+    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const wpm = Math.round((correctChars / 5 / second) * 60);
     const rawWpm = Math.round((currentText.length / 5 / second) * 60);
-    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
 
     return {
       second,
@@ -678,6 +685,9 @@ export function useRaceRoom(roomId: string) {
 
     const nextValue = value.slice(0, passage.length);
     const currentSecond = getCurrentSecond();
+    const currentErrorCount = nextValue
+      .split("")
+      .reduce((count, char, index) => count + (char !== passage[index] ? 1 : 0), 0);
     const correctChars = nextValue
       .split("")
       .filter((char, index) => char === passage[index]).length;
@@ -701,10 +711,25 @@ export function useRaceRoom(roomId: string) {
       }
     }
 
+    if (currentErrorCount > 0) {
+      setTrailingErrorCount((currentCount) => {
+        const nextCount = currentCount + 1;
+
+        if (nextCount >= 7) {
+          setShowErrorModal(true);
+        }
+
+        return nextCount;
+      });
+    } else {
+      setTrailingErrorCount(0);
+      setShowErrorModal(false);
+    }
+
     setTypedText(nextValue);
     sendProgress(progress, safeWpm);
 
-    if (nextValue.length >= passage.length && passage.length > 0) {
+    if (nextValue.length >= passage.length && passage.length > 0 && currentErrorCount === 0) {
       const timeMs = raceStartedAt ? Date.now() - raceStartedAt : 0;
       const finalElapsed = startTimeRef.current
         ? Math.max(1, Math.ceil((Date.now() - startTimeRef.current) / 1000))
@@ -729,6 +754,12 @@ export function useRaceRoom(roomId: string) {
     sendProgress,
     typedText,
   ]);
+
+  const dismissErrorModal = useCallback(() => {
+    setShowErrorModal(false);
+    setTrailingErrorCount(0);
+    focusTypingArea();
+  }, [focusTypingArea]);
 
   const restartLocalRace = useCallback(() => {
     resetLocalTyping();
@@ -756,6 +787,8 @@ export function useRaceRoom(roomId: string) {
     errorEvents,
     caretStyle,
     wpmHistory,
+    showErrorModal,
+    trailingErrorCount,
     metrics,
     resultMetrics,
     chartData,
@@ -764,6 +797,7 @@ export function useRaceRoom(roomId: string) {
     join,
     startRace,
     handleTypingChange,
+    dismissErrorModal,
     resetLocalTyping,
     textareaRef,
     textSurfaceRef,

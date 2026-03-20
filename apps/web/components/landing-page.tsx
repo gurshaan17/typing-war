@@ -41,13 +41,15 @@ function useTestMetrics(
   typedText: string,
   snippet: string,
   elapsedSeconds: number,
+  errorCount: number,
 ): TestMetrics {
   return useMemo(() => {
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === snippet[index]).length;
-    const accuracy = typedText.length
-      ? Math.round((correctChars / typedText.length) * 100)
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const words = correctChars / 5;
     const wpm = Math.round(words / (elapsedSeconds / 60));
@@ -56,7 +58,7 @@ function useTestMetrics(
       accuracy,
       wpm: Number.isFinite(wpm) ? wpm : 0,
     };
-  }, [elapsedSeconds, snippet, typedText]);
+  }, [elapsedSeconds, errorCount, snippet, typedText]);
 }
 
 function useResultMetrics(
@@ -71,7 +73,7 @@ function useResultMetrics(
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === snippet[index]).length;
-    const incorrectChars = typedText.length - correctChars;
+    const incorrectChars = errorCount;
     const rawWpm = Math.round((typedText.length / 5 / elapsedSeconds) * 60);
     const consistencySamples = performanceHistory.map((point) => point.wpm);
     const averageWpm =
@@ -207,7 +209,7 @@ export function LandingPage() {
   const displayTimeValue =
     mode === "time" ? Math.max(timeLimit - elapsedSeconds, 0) : Math.max(elapsedSeconds, 0);
   const customTextReady = snippet.trim().length > 0;
-  const metrics = useTestMetrics(typedText, snippet, elapsedForMetrics);
+  const metrics = useTestMetrics(typedText, snippet, elapsedForMetrics, errorEvents.length);
   const resultMetrics = useResultMetrics(
     typedText,
     snippet,
@@ -267,12 +269,13 @@ export function LandingPage() {
     const correctChars = currentText
       .split("")
       .filter((char, index) => char === currentSnippet[index]).length;
-    const accuracy = currentText.length
-      ? Math.round((correctChars / currentText.length) * 100)
+    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const wpm = Math.round((correctChars / 5 / second) * 60);
     const rawWpm = Math.round((currentText.length / 5 / second) * 60);
-    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
 
     return {
       second,
@@ -459,7 +462,7 @@ export function LandingPage() {
         }
       }
 
-      if (mode !== "time" && nextValue.length >= snippet.length) {
+      if (nextValue.length >= snippet.length && snippet.length > 0) {
         const finalElapsed = startTimeRef.current
           ? Math.max(1, Math.ceil((Date.now() - startTimeRef.current) / 1000))
           : 1;
@@ -472,7 +475,7 @@ export function LandingPage() {
 
       setTypedText(nextValue);
     },
-    [getCurrentSecond, hasStarted, isFinished, mode, recordPerformancePoint, snippet, typedText],
+    [getCurrentSecond, hasStarted, isFinished, recordPerformancePoint, snippet, typedText],
   );
 
   const handleNextQuote = useCallback(() => {
