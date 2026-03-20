@@ -33,13 +33,15 @@ function useTestMetrics(
   typedText: string,
   passage: string,
   elapsedSeconds: number,
+  errorCount: number,
 ): TestMetrics {
   return useMemo(() => {
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === passage[index]).length;
-    const accuracy = typedText.length
-      ? Math.round((correctChars / typedText.length) * 100)
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const words = correctChars / 5;
     const wpm = Math.round(words / (elapsedSeconds / 60));
@@ -48,7 +50,7 @@ function useTestMetrics(
       accuracy,
       wpm: Number.isFinite(wpm) ? wpm : 0,
     };
-  }, [elapsedSeconds, passage, typedText]);
+  }, [elapsedSeconds, errorCount, passage, typedText]);
 }
 
 function useResultMetrics(
@@ -63,7 +65,7 @@ function useResultMetrics(
     const correctChars = typedText
       .split("")
       .filter((char, index) => char === passage[index]).length;
-    const incorrectChars = typedText.length - correctChars;
+    const incorrectChars = errorCount;
     const rawWpm = Math.round((typedText.length / 5 / elapsedSeconds) * 60);
     const consistencySamples = performanceHistory.map((point) => point.wpm);
     const averageWpm =
@@ -265,7 +267,7 @@ export function useRaceRoom(roomId: string) {
     elapsedSeconds,
     performanceHistory.at(-1)?.second ?? 1,
   );
-  const metrics = useTestMetrics(typedText, passage, elapsedForMetrics);
+  const metrics = useTestMetrics(typedText, passage, elapsedForMetrics, errorEvents.length);
   const resultMetrics = useResultMetrics(
     typedText,
     passage,
@@ -320,12 +322,13 @@ export function useRaceRoom(roomId: string) {
     const correctChars = currentText
       .split("")
       .filter((char, index) => char === currentPassage[index]).length;
-    const accuracy = currentText.length
-      ? Math.round((correctChars / currentText.length) * 100)
+    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
+    const accuracyBase = correctChars + errorCount;
+    const accuracy = accuracyBase > 0
+      ? Math.round((correctChars / accuracyBase) * 100)
       : 100;
     const wpm = Math.round((correctChars / 5 / second) * 60);
     const rawWpm = Math.round((currentText.length / 5 / second) * 60);
-    const errorCount = errorEventsRef.current.filter((event) => event.second <= second).length;
 
     return {
       second,
