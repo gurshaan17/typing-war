@@ -4,6 +4,13 @@ import { roomManager } from "../rooms/RoomManager";
 import { generateConnId } from "../utils";
 
 export const httpRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get("/health", async () => {
+    return {
+      status: "ok",
+      running: true,
+    };
+  });
+
   fastify.post("/api/rooms", async (_, reply) => {
     const tempHostConnId = generateConnId();
     const room = roomManager.createRoom(tempHostConnId);
