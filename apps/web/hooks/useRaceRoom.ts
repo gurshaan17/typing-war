@@ -748,7 +748,7 @@ export function useRaceRoom(roomId: string) {
       setTrailingErrorCount((currentCount) => {
         const nextCount = currentCount + 1;
 
-        if (nextCount >= 15) {
+        if (nextCount >= 7) {
           setShowErrorModal(true);
         }
 
