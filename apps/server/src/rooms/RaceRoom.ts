@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: RaceConfig = {
 function sanitizeConfig(config: RaceConfig): RaceConfig {
   return {
     mode: config.mode,
-    timeLimit: [15, 30, 45, 60].includes(config.timeLimit) ? config.timeLimit : 30,
+    timeLimit: [15, 30, 60, 120].includes(config.timeLimit) ? config.timeLimit : 30,
     wordLimit: [10, 25, 50, 100].includes(config.wordLimit) ? config.wordLimit : 25,
     customText: config.customText.trim(),
   };

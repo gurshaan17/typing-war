@@ -16,7 +16,7 @@ type TypingSurfaceProps = {
   timeLimit: number;
   wordLimit: number;
   elapsedSeconds: number;
-  timePresets: readonly (15 | 30 | 45 | 60)[];
+  timePresets: readonly (15 | 30 | 60 | 120)[];
   wordPresets: readonly (10 | 25 | 50 | 100)[];
   metrics: TestMetrics;
   snippet: string;
@@ -33,7 +33,7 @@ type TypingSurfaceProps = {
   onFocusTypingArea: () => void;
   onRestart: () => void;
   onModeChange: (mode: TestMode) => void;
-  onTimeLimitChange: (value: 15 | 30 | 45 | 60) => void;
+  onTimeLimitChange: (value: 15 | 30 | 60 | 120) => void;
   onWordLimitChange: (value: 10 | 25 | 50 | 100) => void;
   customTextDraft: string;
   customTextReady: boolean;
@@ -112,7 +112,7 @@ export function TypingSurface({
                   type="button"
                   onClick={() =>
                     mode === "time"
-                      ? onTimeLimitChange(value as 15 | 30 | 45 | 60)
+                      ? onTimeLimitChange(value as 15 | 30 | 60 | 120)
                       : onWordLimitChange(value as 10 | 25 | 50 | 100)
                   }
                   className={cn(

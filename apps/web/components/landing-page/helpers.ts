@@ -1,5 +1,5 @@
 export const TEST_TIMES = [15, 30, 60, 120] as const;
-export const TIME_MODE_PRESETS = [15, 30, 45, 60] as const;
+export const TIME_MODE_PRESETS = [15, 30, 60, 120] as const;
 export const WORD_MODE_PRESETS = [10, 25, 50, 100] as const;
 export const CHART_WIDTH = 960;
 export const CHART_HEIGHT = 320;

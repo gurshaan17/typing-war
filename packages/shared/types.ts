@@ -3,7 +3,7 @@ export type RaceMode = "time" | "words" | "custom";
 
 export interface RaceConfig {
   mode: RaceMode;
-  timeLimit: 15 | 30 | 45 | 60;
+  timeLimit: 15 | 30 | 60 | 120;
   wordLimit: 10 | 25 | 50 | 100;
   customText: string;
 }
