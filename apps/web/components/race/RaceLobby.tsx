@@ -13,7 +13,7 @@ type RaceLobbyProps = {
   isHost: boolean;
   roomId: string;
   roomConfig: RaceConfig;
-  timePresets: readonly (15 | 30 | 45 | 60)[];
+  timePresets: readonly (15 | 30 | 60 | 120)[];
   wordPresets: readonly (10 | 25 | 50 | 100)[];
   onUpdateConfig: (config: RaceConfig) => void;
   onStartRace: () => void;
